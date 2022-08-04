@@ -1,6 +1,28 @@
 # syntax=docker/dockerfile:1
-# Inherit from the official Synapse docker image
+
 ARG SYNAPSE_VERSION=latesttesting
+
+# first of all, we create a base image with an nginx which we can copy into the
+# target image. For repeated rebuilds, this is much faster than apt installing
+# each time.
+
+FROM debian:bullseye-slim AS deps_base
+    RUN \
+       --mount=type=cache,target=/var/cache/apt,sharing=locked \
+       --mount=type=cache,target=/var/lib/apt,sharing=locked \
+      apt-get update -qq && \
+      DEBIAN_FRONTEND=noninteractive apt-get install -yqq --no-install-recommends \
+          redis-server nginx-light
+
+# Similarly, a base to copy the redis server from.
+#
+# The redis docker image has fewer dynamic libraries than the debian package,
+# which makes it much easier to copy (but we need to make sure we use an image
+# based on the same debian version as the synapse image, to make sure we get
+# the expected version of libc.
+FROM redis:6-bullseye AS redis_base
+
+# now build the final image, based on the the regular Synapse docker image
 FROM docker.io/realtyem/synapse-base:$SYNAPSE_VERSION
 
     # Install supervisord with pip instead of apt, to avoid installing a second
