@@ -48,6 +48,12 @@ listeners:
       - names: [federation]
         compress: false
 
+{% if SYNAPSE_METRICS_HTTP_PORT %}
+  - port: {{ SYNAPSE_METRICS_HTTP_PORT }}
+    bind_address: '0.0.0.0'
+    type: metrics
+{% endif %}
+
 ## Database ##
 
 {% if POSTGRES_PASSWORD %}
@@ -150,12 +156,14 @@ enable_group_creation: true
 
 
 ## Metrics ###
-
-{% if SYNAPSE_REPORT_STATS.lower() == "yes" %}
+{% if SYNAPSE_METRICS.lower() == "yes" %}
 enable_metrics: True
-report_stats: True
 {% else %}
 enable_metrics: False
+{% endif %}
+{% if SYNAPSE_REPORT_STATS.lower() == "yes" %}
+report_stats: True
+{% else %}
 report_stats: False
 {% endif %}
 

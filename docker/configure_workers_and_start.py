@@ -198,6 +198,13 @@ upstream {upstream_worker_type} {{
 }}
 """
 
+PROMETHEUS_SCRAPE_CONFIG_BLOCK = """
+    - targets: ["127.0.0.1:{metrics_port}"]
+      labels:
+        instance: "Synapse"
+        job: "{name}"
+        index: {index}
+"""
 
 # Utility functions
 def log(txt: str) -> None:
@@ -381,7 +388,8 @@ def generate_worker_files(
 
     # Start worker ports from this arbitrary port
     worker_port = 18009
-
+    # Start worker metrics port from this arbitrary port
+    worker_metrics_port = 19009
     # A counter of worker_type -> int. Used for determining the name for a given
     # worker type when generating its config file, as each worker's name is just
     # worker_type + instance #
@@ -409,7 +417,7 @@ def generate_worker_files(
         # e.g. federation_reader1
         worker_name = worker_type + str(new_worker_count)
         worker_config.update(
-            {"name": worker_name, "port": str(worker_port), "config_path": config_path}
+            {"name": worker_name, "port": str(worker_port), "metrics_port": str(worker_metrics_port), "config_path": config_path, "index": str(new_worker_count)}
         )
 
         # Update the shared config with any worker-type specific options
@@ -456,7 +464,7 @@ def generate_worker_files(
         )
 
         worker_port += 1
-
+        worker_metrics_port += 1
     # Build the nginx location config blocks
     nginx_location_config = ""
     for endpoint, upstream in nginx_locations.items():
@@ -479,6 +487,15 @@ def generate_worker_files(
             body=body,
         )
 
+    # Setup the metric end point locations, names and indexes
+    prom_endpoint_config = ""
+    for worker in worker_descriptors:
+        prom_endpoint_config += PROMETHEUS_SCRAPE_CONFIG_BLOCK.format(
+            name=worker["name"],
+            metrics_port=worker["metrics_port"],
+            index=worker["index"],
+        )
+
     # Finally, we'll write out the config files.
 
     # log config for the master process
@@ -497,6 +514,13 @@ def generate_worker_files(
         ]
 
     workers_in_use = len(worker_types) > 0
+
+    enable_prometheus = False
+
+    if "SYNAPSE_METRICS" in environ:
+        check_metric_string = str.lower(environ["SYNAPSE_METRICS"])
+        if check_metric_string in ("true", "on", "1", "yes"):
+            enable_prometheus = True
 
     # Shared homeserver config
     convert(
@@ -518,6 +542,13 @@ def generate_worker_files(
         tls_key_path=os.environ.get("SYNAPSE_TLS_KEY"),
     )
 
+    # Prometheus config
+    convert(
+        "/conf/prometheus.yml.j2",
+        "/etc/prometheus/prometheus.yml",
+        metric_endpoint_locations=prom_endpoint_config,
+    )
+
     # Supervisord config
     os.makedirs("/etc/supervisor", exist_ok=True)
     convert(
@@ -525,6 +556,7 @@ def generate_worker_files(
         "/etc/supervisor/supervisord.conf",
         main_config_path=config_path,
         enable_redis=workers_in_use,
+        enable_prometheus=enable_prometheus,
     )
 
     convert(
