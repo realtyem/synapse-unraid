@@ -34,10 +34,15 @@ server {
 {{ worker_locations }}
 
     # Send all other traffic to the main process
-    location ~* ^(\\/_matrix|\\/_synapse) {
+#    location ~* ^(\\/_matrix|\\/_synapse) {
+    location ~ / {
         proxy_pass http://localhost:8080;
         proxy_set_header X-Forwarded-For $remote_addr;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header Host $host;
+        proxy_set_header 'Access-Control-Allow-Origin' '*';
+        proxy_set_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, OPTIONS';
+        proxy_set_header 'Access-Control-Allow-Headers' 'X-Requested-With, Content-Type, Authorization';
+
     }
 }
