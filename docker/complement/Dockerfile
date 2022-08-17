@@ -6,7 +6,7 @@
 # Instructions for building this image from those it depends on is detailed in this guide:
 # https://github.com/matrix-org/synapse/blob/develop/docker/README-testing.md#testing-with-postgresql-and-single-or-multi-process-synapse
 
-ARG SYNAPSE_VERSION=latest
+ARG SYNAPSE_VERSION=latesttesting
 
 # first of all, we create a base image with a postgres server and database,
 # which we can copy into the target image. For repeated rebuilds, this is
@@ -27,7 +27,7 @@ FROM postgres:13-bullseye AS postgres_base
 
 # now build the final image, based on the Synapse image.
 
-FROM matrixdotorg/synapse-workers:$SYNAPSE_VERSION
+FROM realtyem/synapse:$SYNAPSE_VERSION
     # copy the postgres installation over from the image we built above
     RUN adduser --system --uid 999 postgres --home /var/lib/postgresql
     COPY --from=postgres_base /var/lib/postgresql /var/lib/postgresql
