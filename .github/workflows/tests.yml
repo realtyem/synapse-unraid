@@ -3,7 +3,7 @@ name: Tests
 on:
   push:
     branches: ["unraid_main"]
-  pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
