@@ -44,6 +44,7 @@ FROM matrixdotorg/synapse-workers:$SYNAPSE_VERSION
     # with Jinja2.
     RUN mv /conf/shared.yaml.j2 /conf/shared-orig.yaml.j2
     COPY conf/workers-shared-extra.yaml.j2 /conf/shared.yaml.j2
+    ENV DISABLE_SYNAPSE_RC=1
 
     WORKDIR /data
 

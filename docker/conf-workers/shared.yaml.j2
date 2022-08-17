@@ -16,5 +16,62 @@ app_service_config_files:
   - "{{ path }}"
 {%- endfor %}
 {%- endif %}
+{% if DISABLE_SYNAPSE_RC %}
+# Disable server rate-limiting
+rc_federation:
+  window_size: 1000
+  sleep_limit: 10
+  sleep_delay: 500
+  reject_limit: 99999
+  concurrent: 3
 
+rc_message:
+  per_second: 9999
+  burst_count: 9999
+
+rc_registration:
+  per_second: 9999
+  burst_count: 9999
+
+rc_login:
+  address:
+    per_second: 9999
+    burst_count: 9999
+  account:
+    per_second: 9999
+    burst_count: 9999
+  failed_attempts:
+    per_second: 9999
+    burst_count: 9999
+
+rc_admin_redaction:
+  per_second: 9999
+  burst_count: 9999
+
+rc_joins:
+  local:
+    per_second: 9999
+    burst_count: 9999
+  remote:
+    per_second: 9999
+    burst_count: 9999
+
+rc_joins_per_room:
+    per_second: 9999
+    burst_count: 9999
+
+rc_3pid_validation:
+  per_second: 1000
+  burst_count: 1000
+
+rc_invites:
+  per_room:
+    per_second: 1000
+    burst_count: 1000
+  per_user:
+    per_second: 1000
+    burst_count: 1000
+
+federation_rr_transactions_per_room_per_second: 9999
+{% endif %}
 {{ shared_worker_config }}

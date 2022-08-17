@@ -2,7 +2,7 @@ name: Tests
 
 on:
   push:
-    branches: ["main"]
+    branches: ["unraid_main"]
   pull_request:
 
 concurrency:
@@ -67,7 +67,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.9", "3.10"]
+        python-version: ["3.9", "3.10", "3.11"]
         database: ["sqlite"]
         extras: ["all"]
         include:
@@ -83,6 +83,12 @@ jobs:
 
           # Newest Python with newest PostgreSQL
           - python-version: "3.10"
+            database: "postgres"
+            postgres-version: "14"
+            extras: "all"
+
+          # Bleeding edge Python with newest PostgreSQL
+          - python-version: "3.11"
             database: "postgres"
             postgres-version: "14"
             extras: "all"
@@ -105,7 +111,7 @@ jobs:
         if: ${{ matrix.postgres-version }}
         timeout-minutes: 2
         run: until pg_isready -h localhost; do sleep 1; done
-      - run: poetry run trial --jobs=2 tests
+      - run: poetry run trial --jobs=4 tests
         env:
           SYNAPSE_POSTGRES: ${{ matrix.database == 'postgres' || '' }}
           SYNAPSE_POSTGRES_HOST: localhost
@@ -217,29 +223,17 @@ jobs:
           - sytest-tag: buster
             postgres: postgres
             workers: monolith
-
-#          - sytest-tag: buster
-#            postgres: postgres
-#            workers: monolith
-#            redis: redis
+            redis: redis
 
           - sytest-tag: buster
             postgres: postgres
             workers: workers
-
-#          - sytest-tag: buster
-#            postgres: postgres
-#            workers: workers
-#            redis: redis
+            redis: redis
 
           - sytest-tag: buster
             postgres: multi-postgres
             workers: workers
-
-#          - sytest-tag: buster
-#            postgres: multi-postgres
-#            workers: workers
-#            redis: redis
+            redis: redis
 
     steps:
       - uses: actions/checkout@v2

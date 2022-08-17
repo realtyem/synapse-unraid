@@ -5,7 +5,7 @@
 #
 # As an overview this workflow:
 # - checks out develop,
-# - installs from source, pulling in the dependencies like a fresh `pip install` would, and 
+# - installs from source, pulling in the dependencies like a fresh `pip install` would, and
 # - runs mypy and test suites in that checkout.
 #
 # Based on the twisted trunk CI job.
@@ -13,8 +13,6 @@
 name: Latest dependencies
 
 on:
-  schedule:
-    - cron: 0 7 * * *
   workflow_dispatch:
 
 concurrency:
@@ -187,4 +185,3 @@ jobs:
         with:
           update_existing: true
           filename: .ci/latest_deps_build_failed_issue_template.md
-
