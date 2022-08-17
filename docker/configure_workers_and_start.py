@@ -206,6 +206,7 @@ PROMETHEUS_SCRAPE_CONFIG_BLOCK = """
         index: {index}
 """
 
+
 # Utility functions
 def log(txt: str) -> None:
     """Log something to the stdout.
@@ -417,7 +418,14 @@ def generate_worker_files(
         # e.g. federation_reader1
         worker_name = worker_type + str(new_worker_count)
         worker_config.update(
-            {"name": worker_name, "type": worker_type, "port": str(worker_port), "metrics_port": str(worker_metrics_port), "config_path": config_path, "index": str(new_worker_count)}
+            {
+                "name": worker_name,
+                "type": worker_type,
+                "port": str(worker_port),
+                "metrics_port": str(worker_metrics_port),
+                "config_path": config_path,
+                "index": str(new_worker_count),
+            }
         )
 
         # Update the shared config with any worker-type specific options
