@@ -3,9 +3,9 @@
 name: Build docker images
 
 on:
-  push:
-    tags: ["v*"]
-    branches: [ master, main, develop ]
+#  push:
+#    tags: ["v*"]
+#    branches: [ master, main, develop ]
   workflow_dispatch:
 
 permissions:
@@ -27,7 +27,7 @@ jobs:
 
       - name: Inspect builder
         run: docker buildx inspect
-          
+
       - name: Log in to DockerHub
         uses: docker/login-action@v1
         with:

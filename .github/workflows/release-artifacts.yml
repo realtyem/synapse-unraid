@@ -5,17 +5,18 @@ name: Build release artifacts
 on:
   # we build on PRs and develop to (hopefully) get early warning
   # of things breaking (but only build one set of debs)
-  pull_request:
-  push:
-    branches: ["develop", "release-*"]
+#  pull_request:
+#  push:
+#    branches: ["develop", "release-*"]
 
     # we do the full build on tags.
-    tags: ["v*"]
+#    tags: ["v*"]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
-  
+
 permissions:
   contents: write
 

@@ -1,9 +1,10 @@
 name: Tests
 
 on:
-  push:
-    branches: ["develop", "release-*"]
-  pull_request:
+#  push:
+#    branches: ["develop", "release-*"]
+#  pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

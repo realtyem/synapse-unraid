@@ -1,15 +1,14 @@
 name: Deploy the documentation
 
 on:
-  push:
-    branches:
+#  push:
+#    branches:
       # For bleeding-edge documentation
-      - develop
+#      - develop
       # For documentation specific to a release
-      - 'release-v*'
+#      - 'release-v*'
       # stable docs
-      - master
-
+#      - master
   workflow_dispatch:
 
 jobs:
@@ -55,7 +54,7 @@ jobs:
 
           # finally, set the 'branch-version' var.
           echo "::set-output name=branch-version::$branch"
-          
+
       # Deploy to the target directory.
       - name: Deploy to gh pages
         uses: peaceiris/actions-gh-pages@068dc23d9710f1ba62e86896f84735d869951305 # v3.8.0
