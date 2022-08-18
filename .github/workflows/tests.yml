@@ -67,7 +67,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11"]
+        python-version: ["3.9", "3.10"]
         database: ["sqlite"]
         extras: ["all"]
         include:
@@ -88,10 +88,10 @@ jobs:
             extras: "all"
 
           # Bleeding edge Python with newest PostgreSQL
-          - python-version: "3.11"
-            database: "postgres"
-            postgres-version: "14"
-            extras: "all"
+#          - python-version: "3.11.0-rc.1"
+#            database: "postgres"
+#            postgres-version: "14"
+#            extras: "all"
 
     steps:
       - uses: actions/checkout@v2
