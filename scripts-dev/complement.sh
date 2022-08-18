@@ -98,16 +98,16 @@ fi
 
 if [ -z "$skip_docker_build" ]; then
     # Build the base Synapse image from the local checkout
-    echo_if_github "::group::Build Docker image: matrixdotorg/synapse"
-    docker build -t matrixdotorg/synapse \
+    echo_if_github "::group::Build Docker image: realtyem/synapse-base:develop"
+    docker build -t realtyem/synapse:develop \
       --build-arg TEST_ONLY_SKIP_DEP_HASH_VERIFICATION \
       --build-arg TEST_ONLY_IGNORE_POETRY_LOCKFILE \
       -f "docker/Dockerfile" .
     echo_if_github "::endgroup::"
 
     # Build the workers docker image (from the base Synapse image we just built).
-    echo_if_github "::group::Build Docker image: matrixdotorg/synapse-workers"
-    docker build -t matrixdotorg/synapse-workers -f "docker/Dockerfile-workers" .
+    echo_if_github "::group::Build Docker image: realtyem/synapse:develop"
+    docker build -t realtyem/synapse:develop -f "docker/Dockerfile-workers" .
     echo_if_github "::endgroup::"
 
     # Build the unified Complement image (from the worker Synapse image we just built).
