@@ -34,7 +34,7 @@ def main(force_colors: bool) -> None:
 
     click.secho("Getting current schema version...")
 
-    r = repo.git.show("origin/develop:synapse/storage/schema/__init__.py")
+    r = repo.git.show("origin/unraid_develop:synapse/storage/schema/__init__.py")
 
     locals: Dict[str, Any] = {}
     exec(r, locals)
@@ -42,7 +42,7 @@ def main(force_colors: bool) -> None:
 
     click.secho(f"Current schema version: {current_schema_version}")
 
-    diffs: List[git.Diff] = repo.remote().refs.develop.commit.diff(None)
+    diffs: List[git.Diff] = repo.remote().refs.unraid_develop.commit.diff(None)
 
     seen_deltas = False
     bad_files = []
