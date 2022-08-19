@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-# Dockerfile to build the matrixdotorg/synapse docker images.
+# Dockerfile to build our forked matrixdotorg/synapse docker images.
 #
 # Note that it uses features which are only available in BuildKit - see
 # https://docs.docker.com/go/buildkit/ for more information.
@@ -139,8 +139,8 @@ RUN if [ -z "$TEST_ONLY_IGNORE_POETRY_LOCKFILE" ]; then \
 FROM docker.io/python:${PYTHON_VERSION}-slim
 
 LABEL org.opencontainers.image.url='https://matrix.org/docs/projects/server/synapse'
-LABEL org.opencontainers.image.documentation='https://github.com/matrix-org/synapse/blob/master/docker/README.md'
-LABEL org.opencontainers.image.source='https://github.com/matrix-org/synapse.git'
+LABEL org.opencontainers.image.documentation='https://github.com/realtyem/synapse/blob/master/docker/README.md'
+LABEL org.opencontainers.image.source='https://github.com/realtyem/synapse.git'
 LABEL org.opencontainers.image.licenses='Apache-2.0'
 
 RUN \
