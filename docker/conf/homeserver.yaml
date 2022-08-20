@@ -1,3 +1,14 @@
+# Configuration file for Synapse.
+#
+# This is a YAML file: see [1] for a quick introduction. Note in particular
+# that *indentation is important*: all the elements of a list or dictionary
+# should have the same indentation.
+#
+# [1] https://docs.ansible.com/ansible/latest/reference_appendices/YAMLSyntax.html
+#
+# For more information on how to configure Synapse, including a complete accounting of
+# each option, go to docs/usage/configuration/config_documentation.md or
+# https://matrix-org.github.io/synapse/latest/usage/configuration/config_documentation.html
 # vim:ft=yaml
 
 ## TLS ##
@@ -47,6 +58,11 @@ listeners:
         compress: true
       - names: [federation]
         compress: false
+{% if SYNAPSE_METRICS %}
+  - port: {{ SYNAPSE_METRICS_HTTP_PORT or 8060}}
+    bind_address: '0.0.0.0'
+    type: metrics
+{% endif %}
 
 ## Database ##
 
@@ -151,11 +167,10 @@ enable_group_creation: true
 
 ## Metrics ###
 
-{% if SYNAPSE_REPORT_STATS.lower() == "yes" %}
-enable_metrics: True
+enable_metrics: {{ "True" if SYNAPSE_METRICS else "False" }}
+{% if SYNAPSE_REPORT_STATS.lower() == "yes" and SYNAPSE_METRICS %}
 report_stats: True
 {% else %}
-enable_metrics: False
 report_stats: False
 {% endif %}
 

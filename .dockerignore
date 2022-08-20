@@ -2,6 +2,7 @@
 *
 
 # things to include
+!contrib/prometheus
 !docker
 !synapse
 !README.rst

@@ -1,0 +1,19 @@
+global:
+  scrape_interval: 15s
+
+  external_labels:
+    monitor: 'monitor'
+rule_files:
+  - "/etc/prometheus/synapse-V2.rules"
+
+scrape_configs:
+  - job_name: "synapse"
+    scrape_interval: 15s
+    metrics_path: "/_synapse/metrics"
+    static_configs:
+    - targets: ["localhost:8060"]
+      labels:
+        instance: "Synapse"
+        job: "Main Homeserver"
+        index: 1
+{{ metric_endpoint_locations }}

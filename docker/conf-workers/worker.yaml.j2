@@ -20,6 +20,10 @@ worker_listeners:
         - {{ resource }}
 {%- endfor %}
 {% endif %}
+{% if metrics_port %}
+  - type: metrics
+    port: {{ metrics_port }}
+{% endif %}
 
 worker_log_config: {{ worker_log_config_filepath }}
 
