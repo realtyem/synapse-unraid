@@ -173,7 +173,7 @@ WORKERS_CONFIG: Dict[str, Dict[str, Any]] = {
     },
     "frontend_proxy": {
         "app": "synapse.app.frontend_proxy",
-        "listener_resources": ["client", "replication"],
+        "listener_resources": ["client"],
         "endpoint_patterns": ["^/_matrix/client/(api/v1|r0|v3|unstable)/keys/upload"],
         "shared_extra_conf": {},
         "worker_extra_conf": (
@@ -183,7 +183,7 @@ WORKERS_CONFIG: Dict[str, Dict[str, Any]] = {
     },
     "account_data": {
         "app": "synapse.app.generic_worker",
-        "listener_resources": ["client", "replication"],
+        "listener_resources": ["client"],
         "endpoint_patterns": [
             "^/_matrix/client/(r0|v3|unstable)/.*/tags",
             "^/_matrix/client/(r0|v3|unstable)/.*/account_data",
@@ -193,14 +193,14 @@ WORKERS_CONFIG: Dict[str, Dict[str, Any]] = {
     },
     "presence": {
         "app": "synapse.app.generic_worker",
-        "listener_resources": ["client", "replication"],
+        "listener_resources": ["client"],
         "endpoint_patterns": ["^/_matrix/client/(api/v1|r0|v3|unstable)/presence/"],
         "shared_extra_conf": {},
         "worker_extra_conf": "",
     },
     "receipts": {
         "app": "synapse.app.generic_worker",
-        "listener_resources": ["client", "replication"],
+        "listener_resources": ["client"],
         "endpoint_patterns": [
             "^/_matrix/client/(r0|v3|unstable)/rooms/.*/receipt",
             "^/_matrix/client/(r0|v3|unstable)/rooms/.*/read_markers",
@@ -210,14 +210,14 @@ WORKERS_CONFIG: Dict[str, Dict[str, Any]] = {
     },
     "to_device": {
         "app": "synapse.app.generic_worker",
-        "listener_resources": ["client", "replication"],
+        "listener_resources": ["client"],
         "endpoint_patterns": ["^/_matrix/client/(r0|v3|unstable)/sendToDevice/"],
         "shared_extra_conf": {},
         "worker_extra_conf": "",
     },
     "typing": {
         "app": "synapse.app.generic_worker",
-        "listener_resources": ["client", "replication"],
+        "listener_resources": ["client"],
         "endpoint_patterns": [
             "^/_matrix/client/(api/v1|r0|v3|unstable)/rooms/.*/typing"
         ],
