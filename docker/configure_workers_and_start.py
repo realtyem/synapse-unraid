@@ -181,6 +181,49 @@ WORKERS_CONFIG: Dict[str, Dict[str, Any]] = {
             % (MAIN_PROCESS_HTTP_LISTENER_PORT,)
         ),
     },
+    "account_data": {
+        "app": "synapse.app.generic_worker",
+        "listener_resources": ["client", "replication"],
+        "endpoint_patterns": [
+            "^/_matrix/client/(r0|v3|unstable)/.*/tags",
+            "^/_matrix/client/(r0|v3|unstable)/.*/account_data",
+        ],
+        "shared_extra_conf": {},
+        "worker_extra_conf": "",
+    },
+    "presence": {
+        "app": "synapse.app.generic_worker",
+        "listener_resources": ["client", "replication"],
+        "endpoint_patterns": ["^/_matrix/client/(api/v1|r0|v3|unstable)/presence/"],
+        "shared_extra_conf": {},
+        "worker_extra_conf": "",
+    },
+    "receipts": {
+        "app": "synapse.app.generic_worker",
+        "listener_resources": ["client", "replication"],
+        "endpoint_patterns": [
+            "^/_matrix/client/(r0|v3|unstable)/rooms/.*/receipt",
+            "^/_matrix/client/(r0|v3|unstable)/rooms/.*/read_markers",
+        ],
+        "shared_extra_conf": {},
+        "worker_extra_conf": "",
+    },
+    "to_device": {
+        "app": "synapse.app.generic_worker",
+        "listener_resources": ["client", "replication"],
+        "endpoint_patterns": ["^/_matrix/client/(r0|v3|unstable)/sendToDevice/"],
+        "shared_extra_conf": {},
+        "worker_extra_conf": "",
+    },
+    "typing": {
+        "app": "synapse.app.generic_worker",
+        "listener_resources": ["client", "replication"],
+        "endpoint_patterns": [
+            "^/_matrix/client/(api/v1|r0|v3|unstable)/rooms/.*/typing"
+        ],
+        "shared_extra_conf": {},
+        "worker_extra_conf": "",
+    },
 }
 
 # Templates for sections that may be inserted multiple times in config files
@@ -285,6 +328,71 @@ def add_sharding_to_shared_config(
         # Event persisters write to the events stream, so we need to update
         # the list of event stream writers
         shared_config.setdefault("stream_writers", {}).setdefault("events", []).append(
+            worker_name
+        )
+
+        # Map of stream writer instance names to host/ports combos
+        instance_map[worker_name] = {
+            "host": "localhost",
+            "port": worker_port,
+        }
+
+    elif worker_type == "account_data":
+        # Account data writes to the account_data stream, so we need to update
+        # the list of stream writers
+        shared_config.setdefault("stream_writers", {}).setdefault(
+            "account_data", []
+        ).append(worker_name)
+
+        # Map of stream writer instance names to host/ports combos
+        instance_map[worker_name] = {
+            "host": "localhost",
+            "port": worker_port,
+        }
+
+    elif worker_type == "presence":
+        # Presence writes to the presence stream, so we need to update
+        # the list of stream writers
+        shared_config.setdefault("stream_writers", {}).setdefault(
+            "presence", []
+        ).append(worker_name)
+
+        # Map of stream writer instance names to host/ports combos
+        instance_map[worker_name] = {
+            "host": "localhost",
+            "port": worker_port,
+        }
+
+    elif worker_type == "receipts":
+        # Receipts write to the receipts stream, so we need to update
+        # the list of stream writers
+        shared_config.setdefault("stream_writers", {}).setdefault(
+            "receipts", []
+        ).append(worker_name)
+
+        # Map of stream writer instance names to host/ports combos
+        instance_map[worker_name] = {
+            "host": "localhost",
+            "port": worker_port,
+        }
+
+    elif worker_type == "to_device":
+        # Event persisters write to the events stream, so we need to update
+        # the list of event stream writers
+        shared_config.setdefault("stream_writers", {}).setdefault(
+            "to_device", []
+        ).append(worker_name)
+
+        # Map of stream writer instance names to host/ports combos
+        instance_map[worker_name] = {
+            "host": "localhost",
+            "port": worker_port,
+        }
+
+    elif worker_type == "typing":
+        # Event persisters write to the events stream, so we need to update
+        # the list of event stream writers
+        shared_config.setdefault("stream_writers", {}).setdefault("typing", []).append(
             worker_name
         )
 
