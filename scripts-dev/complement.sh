@@ -99,7 +99,7 @@ fi
 if [ -z "$skip_docker_build" ]; then
     # Build the base Synapse image from the local checkout
     echo_if_github "::group::Build Docker image: realtyem/synapse-base:develop"
-    docker build -t realtyem/synapse:develop \
+    docker build -t realtyem/synapse-base:develop \
       --build-arg TEST_ONLY_SKIP_DEP_HASH_VERIFICATION \
       --build-arg TEST_ONLY_IGNORE_POETRY_LOCKFILE \
       -f "docker/Dockerfile" .
