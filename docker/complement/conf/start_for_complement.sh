@@ -58,6 +58,11 @@ if [[ -n "$SYNAPSE_COMPLEMENT_USE_WORKERS" ]]; then
       federation_sender, \
       synchrotron, \
       appservice, \
+      account_data, \
+      presence, \
+      receipts, \
+      to_device, \
+      typing, \
       pusher"
 
   # Improve startup times by using a launcher based on fork()
