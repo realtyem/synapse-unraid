@@ -48,22 +48,9 @@ if [[ -n "$SYNAPSE_COMPLEMENT_USE_WORKERS" ]]; then
   export SYNAPSE_WORKER_TYPES="\
       event_persister, \
       event_persister, \
-      background_worker, \
-      frontend_proxy, \
-      event_creator, \
-      user_dir, \
-      media_repository, \
-      federation_inbound, \
-      federation_reader, \
-      federation_sender, \
-      synchrotron, \
-      appservice, \
       account_data, \
       presence, \
-      receipts, \
-      to_device, \
-      typing, \
-      pusher"
+      to_device"
 
   # Improve startup times by using a launcher based on fork()
   export SYNAPSE_USE_EXPERIMENTAL_FORKING_LAUNCHER=1
