@@ -1,0 +1,23 @@
+[databases]
+{{ postgres_db or synapse }} = host={{ postgres_host }} port={{ postgres_port or 5432 }} user={{ postgres_user }} password={{ postgres_password }}
+
+[pgbouncer]
+logfile = /data/logs/pgbouncer.log
+pidfile = /tmp/pgbouncer.pid
+# The use case is for a unix socket, so don't need a listen address
+# listen_addr = *
+listen_port = 6432
+pool_mode = session
+max_client_conn = 500
+# bump up from default of 20
+default_pool_size = 100
+min_pool_size = 20
+reserve_pool_size = 3
+# use file namespace for unix sockets
+unix_socket_dir = /tmp
+unix_socket_mode = 0777
+
+# Authentication stuff
+auth_type = trust
+# below file will be created everytime with the configure_workers_and_start.py script
+auth_file = /etc/pgbouncer/pgusers.txt
