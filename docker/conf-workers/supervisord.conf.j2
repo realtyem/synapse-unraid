@@ -52,5 +52,6 @@ stdout_logfile_maxbytes=0
 stderr_logfile=/dev/stderr
 stderr_logfile_maxbytes=0
 autorestart=unexpected
-autostart=false
+# This can be disabled by ENV variables
+autostart={{ enable_pgbouncer }}
 exitcodes=0

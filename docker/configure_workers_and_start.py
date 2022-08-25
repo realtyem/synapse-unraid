@@ -639,6 +639,7 @@ def generate_worker_files(
     workers_in_use = len(worker_types) > 0
 
     enable_prometheus = False
+    enable_pgbouncer = False
 
     obj_environ: Dict[str, Any] = dict(environ)
 
@@ -647,6 +648,11 @@ def generate_worker_files(
         if check_metric_string in ("true", "on", "1", "yes"):
             enable_prometheus = True
             obj_environ["SYNAPSE_METRICS"] = True
+
+    if "USE_PGBOUNCER" in environ:
+        check_pgbouncer_string = str.lower(environ["USE_PGBOUNCER"])
+        if check_pgbouncer_string in ("true", "on", "1", "yes"):
+            enable_pgbouncer = True
 
     # Shared homeserver config
     convert(
@@ -683,6 +689,7 @@ def generate_worker_files(
         main_config_path=config_path,
         enable_redis=workers_in_use,
         enable_prometheus=enable_prometheus,
+        enable_pgbouncer=enable_pgbouncer,
     )
 
     convert(
@@ -692,6 +699,25 @@ def generate_worker_files(
         main_config_path=config_path,
         use_forking_launcher=environ.get("SYNAPSE_USE_EXPERIMENTAL_FORKING_LAUNCHER"),
     )
+
+    if environ.get("USE_PGBOUNCER") == "1":
+        pgbouncer_config_file = "/etc/pgbouncer/pgbouncer.ini"
+        pgusers_auth_file = "/etc/pgbouncer/pgusers.txt"
+        convert(
+            "/conf/pgbouncer.ini.j2",
+            pgbouncer_config_file,
+            postgres_user=environ.get("POSTGRES_USER", "synapse"),
+            postgres_password=environ.get("POSTGRES_PASSWORD"),
+            postgres_db=environ.get("POSTGRES_DB", "synapse"),
+            postgres_host=environ.get("POSTGRES_HOST", "db"),
+            postgres_port=environ.get("POSTGRES_PORT", "5432"),
+        )
+        convert(
+            "/conf/pgusers.txt.j2",
+            pgusers_auth_file,
+            postgres_user=environ.get("POSTGRES_USER", "synapse"),
+            postgres_password=environ.get("POSTGRES_PASSWORD"),
+        )
 
     # healthcheck config
     convert(
