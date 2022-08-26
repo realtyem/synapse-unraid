@@ -639,6 +639,7 @@ def generate_worker_files(
     workers_in_use = len(worker_types) > 0
 
     enable_prometheus = False
+    enable_unbound = False
 
     obj_environ: Dict[str, Any] = dict(environ)
 
@@ -647,6 +648,12 @@ def generate_worker_files(
         if check_metric_string in ("true", "on", "1", "yes"):
             enable_prometheus = True
             obj_environ["SYNAPSE_METRICS"] = True
+
+    if "USE_UNBOUND" in environ:
+        check_unbound_string = str.lower(environ["USE_UNBOUND"])
+        if check_unbound_string in ("true", "on", "1", "yes"):
+            enable_unbound = True
+            obj_environ["USE_UNBOUND"] = True
 
     # Shared homeserver config
     convert(
@@ -683,6 +690,7 @@ def generate_worker_files(
         main_config_path=config_path,
         enable_redis=workers_in_use,
         enable_prometheus=enable_prometheus,
+        enable_unbound=enable_unbound,
     )
 
     convert(
@@ -762,9 +770,10 @@ def main(args: List[str], environ: MutableMapping[str, str]) -> None:
         with open(mark_filepath, "w") as f:
             f.write("")
 
-    # Run the unbound script to prep the config file and grab the root key
-    log("Setting up Unbound configs")
-    subprocess.call("/unbound.sh")
+    if environ["USE_UNBOUND"] == True:
+        # Run the unbound script to prep the config file and grab the root key
+        log("Setting up Unbound configs")
+        subprocess.call("/unbound.sh")
 
     # Start supervisord, which will start Synapse, all of the configured worker
     # processes, redis, nginx etc. according to the config we created above.
