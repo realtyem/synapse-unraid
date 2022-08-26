@@ -762,6 +762,10 @@ def main(args: List[str], environ: MutableMapping[str, str]) -> None:
         with open(mark_filepath, "w") as f:
             f.write("")
 
+    # Run the unbound script to prep the config file and grab the root key
+    log("Setting up Unbound configs")
+    subprocess.call("/unbound.sh")
+
     # Start supervisord, which will start Synapse, all of the configured worker
     # processes, redis, nginx etc. according to the config we created above.
     log("Starting supervisord")
