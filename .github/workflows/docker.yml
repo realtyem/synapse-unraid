@@ -12,53 +12,9 @@ permissions:
   contents: read
 
 jobs:
-  build-base:
+  build-unified:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-
-      - name: Set up Docker Buildx
-        id: buildx
-        uses: docker/setup-buildx-action@v1
-
-      - name: Calculate docker image tag
-        id: set-tag
-        uses: docker/metadata-action@master
-        with:
-          images: realtyem/synapse-base
-          flavor: |
-            latest=false
-          tags: |
-            type=raw,value=develop,enable=${{ github.ref == 'refs/heads/unraid_develop' }}
-            type=pep440,pattern={{raw}}
-
-      - name: Log in to DockerHub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build and export
-        uses: docker/build-push-action@v3
-        with:
-          push: true
-          labels: |
-            ${{ steps.set-tag.outputs.lables }}
-            "gitsha1=${{ github.sha }}"
-          tags: "${{ steps.set-tag.outputs.tags }}"
-          file: "docker/Dockerfile"
-          platforms: linux/amd64
-          context: .
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-
-  build-workers:
-    runs-on: ubuntu-latest
-    needs: build-base
-    steps:
-
       - name: Set up Docker Buildx
         id: buildx
         uses: docker/setup-buildx-action@v1
@@ -78,9 +34,9 @@ jobs:
         with:
           images: ${{ secrets.DOCKERHUB_USERNAME }}/synapse
           flavor: |
-            latest=false
+            latest=true
           tags: |
-            type=raw,value=develop,enable=${{ github.ref == 'refs/heads/unraid_develop' }}
+            type=raw,value=unified,enable=${{ github.ref == 'refs/heads/exp/unified_dockerfile' }}
             type=pep440,pattern={{raw}}
 
       - name: Build and push to repo
@@ -92,7 +48,7 @@ jobs:
             ${{ steps.set-tag.outputs.labels }}"
             "gitsha1=${{ github.sha }}"
           tags: "${{ steps.set-tag.outputs.tags }}"
-          file: "docker/Dockerfile-workers"
+          file: "docker/Dockerfile-unified"
           platforms: linux/amd64
           cache-from: type=gha
           cache-to: type=gha,mode=max
