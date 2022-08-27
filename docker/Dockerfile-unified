@@ -231,7 +231,7 @@ COPY ./docker/prefix-log /usr/local/bin/
 COPY ./contrib/prometheus/* /etc/prometheus/
 
 # Expose nginx listener port
-EXPOSE 8080/tcp
+EXPOSE 8008/tcp
 # Expose the prometheus listener port
 EXPOSE 9090/tcp
 
