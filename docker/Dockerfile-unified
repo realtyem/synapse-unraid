@@ -135,7 +135,40 @@ RUN if [ -z "$TEST_ONLY_IGNORE_POETRY_LOCKFILE" ]; then \
   fi
 
 ###
-### Stage 2: runtime
+### Stage 2: Add-ons
+###
+# Adding:
+# 1. Nginx - for reverse proxy support to avoid exposing a mess of ports
+# 2. Redis - for internal replication. This is cleaner and faster than an external redis
+# 3. Prometheus - to collect the metrics that Synapse exposes if enabled.
+# ?4. DNS caching - Maybe. TODO
+# ?5. Grafana - Maybe. External is probably better. TODO
+# ?6. Postgres - Maybe. Internal server with external persistent storage db files. TODO
+# ?7. Coturn - Maybe. Notoriously hard to get it right. Lots of ports to expose. TODO
+
+# A base image with nginx and prometheus which we can copy into the
+# target image. For repeated rebuilds, this is much faster than apt installing
+# each time.
+
+FROM debian:bullseye-slim AS deps_base
+    RUN \
+       --mount=type=cache,target=/var/cache/apt,sharing=locked \
+       --mount=type=cache,target=/var/lib/apt,sharing=locked \
+      apt-get update -qq && \
+      DEBIAN_FRONTEND=noninteractive apt-get install -yqq --no-install-recommends \
+          nginx-light prometheus
+
+# Similarly, a base to copy the redis server from.
+#
+# The redis docker image has fewer dynamic libraries than the debian package,
+# which makes it much easier to copy (but we need to make sure we use an image
+# based on the same debian version as the synapse image, to make sure we get
+# the expected version of libc.
+
+FROM redis:6-bullseye AS redis_base
+
+###
+### Stage #: runtime
 ###
 
 FROM docker.io/python:${PYTHON_VERSION}-slim
