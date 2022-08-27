@@ -156,7 +156,9 @@ FROM debian:bullseye-slim AS deps_base
        --mount=type=cache,target=/var/lib/apt,sharing=locked \
       apt-get update -qq && \
       DEBIAN_FRONTEND=noninteractive apt-get install -yqq --no-install-recommends \
-          nginx-light prometheus
+          nginx-light \
+          prometheus \
+          && rm -rf /var/lib/apt/lists/*
 
 # Similarly, a base to copy the redis server from.
 #
