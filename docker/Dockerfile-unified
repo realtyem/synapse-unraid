@@ -7,17 +7,17 @@
 # To build the image, run `docker build` command from the root of the
 # synapse repository:
 #
-#    DOCKER_BUILDKIT=1 docker build -f docker/Dockerfile .
+#    DOCKER_BUILDKIT=1 docker build -f docker/Dockerfile-unified .
 #
 # There is an optional PYTHON_VERSION build argument which sets the
 # version of python to build against: for example:
 #
-#    DOCKER_BUILDKIT=1 docker build -f docker/Dockerfile --build-arg PYTHON_VERSION=3.10 .
+#    DOCKER_BUILDKIT=1 docker build -f docker/Dockerfile-unified --build-arg PYTHON_VERSION=3.10 .
 #
 
 # Irritatingly, there is no blessed guide on how to distribute an application with its
 # poetry-managed environment in a docker image. We have opted for
-# `poetry export | pip install -r /dev/stdin`, but there are known bugs in
+# `poetry export | pip install -r /dev/stdin`, but there are known bugs
 # in `poetry export` whose fixes (scheduled for poetry 1.2) have yet to be released.
 # In case we get bitten by those bugs in the future, the recommendations here might
 # be useful:
@@ -67,10 +67,12 @@ COPY pyproject.toml poetry.lock /synapse/
 # If specified, we won't verify the hashes of dependencies.
 # This is only needed if the hashes of dependencies cannot be checked for some
 # reason, such as when a git repository is used directly as a dependency.
+# Specifically, this is currently used during CI workflow testing.
 ARG TEST_ONLY_SKIP_DEP_HASH_VERIFICATION
 
 # If specified, we won't use the Poetry lockfile.
 # Instead, we'll just install what a regular `pip install` would from PyPI.
+# This is also currently used during CI workflow testing.
 ARG TEST_ONLY_IGNORE_POETRY_LOCKFILE
 
 # Export the dependencies, but only if we're actually going to use the Poetry lockfile.
