@@ -56,8 +56,6 @@ if [[ -n "$SYNAPSE_COMPLEMENT_USE_WORKERS" ]]; then
       federation_inbound, \
       federation_reader, \
       federation_sender, \
-      federation_sender, \
-      synchrotron, \
       synchrotron, \
       appservice, \
       account_data, \

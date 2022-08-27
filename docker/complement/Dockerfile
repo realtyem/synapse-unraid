@@ -6,7 +6,7 @@
 # Instructions for building this image from those it depends on is detailed in this guide:
 # https://github.com/matrix-org/synapse/blob/develop/docker/README-testing.md#testing-with-postgresql-and-single-or-multi-process-synapse
 
-ARG SYNAPSE_VERSION=develop
+ARG SYNAPSE_VERSION=latest
 
 # first of all, we create a base image with a postgres server and database,
 # which we can copy into the target image. For repeated rebuilds, this is
