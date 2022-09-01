@@ -141,9 +141,12 @@ RUN if [ -z "$TEST_ONLY_IGNORE_POETRY_LOCKFILE" ]; then \
 # 1. Nginx - for reverse proxy support to avoid exposing a mess of ports
 # 2. Redis - for internal replication. This is cleaner and faster than an external redis
 # 3. Prometheus - to collect the metrics that Synapse exposes if enabled.
+# 3a. Redis metrics exporter
+# 3b. Nginx metrics exporter
 # ?4. DNS caching - Maybe. TODO
 # ?5. Grafana - Maybe. External is probably better. TODO
 # ?6. Postgres - Maybe. Internal server with external persistent storage db files. TODO
+# ?6a. Postgres metrics exporter
 # ?7. Coturn - Maybe. Notoriously hard to get it right. Lots of ports to expose. TODO
 
 # A base image with nginx and prometheus which we can copy into the
@@ -168,6 +171,29 @@ FROM debian:bullseye-slim AS deps_base
 # the expected version of libc.
 
 FROM redis:6-bullseye AS redis_base
+
+# The redis exporter found at https://github.com/oliver006/redis_exporter
+#
+# Uses an alpine container to build the exporter itself with go.
+
+FROM --platform=linux/amd64 golang:1.19-alpine as redis_exporter_builder
+
+WORKDIR /opt/redis_exporter
+
+RUN apk --no-cache add ca-certificates git
+
+RUN git clone https://github.com/oliver006/redis_exporter.git .
+
+# ADD . /go/src/github.com/oliver006/redis_exporter/
+
+ARG SHA1="[no-sha]"
+ARG TAG="[no-tag]"
+ARG GOARCH="amd64"
+
+RUN BUILD_DATE=$(date +%F-%T) CGO_ENABLED=0 GOOS=linux GOARCH=$GOARCH go build -o /redis_exporter \
+    -ldflags  "-s -w -extldflags \"-static\" -X main.BuildVersion=$TAG -X main.BuildCommitSha=$SHA1 -X main.BuildDate=$BUILD_DATE" .
+
+RUN [ "$GOARCH" = "amd64" ]  && /redis_exporter -version || ls -la /redis_exporter
 
 ###
 ### Stage #: runtime
@@ -220,6 +246,10 @@ RUN rm /etc/nginx/sites-enabled/default
 # Copy over Prometheus. Should we bring the website files. It's 10's of MB's
 COPY --from=deps_base /usr/bin/prometheus /usr/bin
 COPY --from=deps_base /usr/share/prometheus/* /usr/share/prometheus
+
+# Copy in the redis_exporter
+COPY --from=redis_exporter_builder /redis_exporter /usr/local/bin/redis_exporter
+COPY --from=redis_exporter_builder /etc/ssl/certs /etc/ssl/certs
 
 # Copy Synapse worker, nginx and supervisord configuration template files
 # The base start up script, used to generate some config files

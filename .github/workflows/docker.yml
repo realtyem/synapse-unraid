@@ -5,7 +5,7 @@ name: Build docker images
 on:
   push:
     tags: ["v*"]
-    branches: [ unraid_develop ]
+    branches: [ unraid_develop, exp/* ]
   workflow_dispatch:
 
 permissions:
@@ -34,8 +34,9 @@ jobs:
         with:
           images: ${{ secrets.DOCKERHUB_USERNAME }}/synapse
           flavor: |
-            latest=true
+            latest=${{ github.ref == 'refs/heads/unraid_develop' }}
           tags: |
+            type=raw,value=experimental-redis-metrics,enable=${{ github.ref == 'refs/heads/exp/redis_metrics_export' }}
             type=raw,value=unified,enable=${{ github.ref == 'refs/heads/unraid_develop' }}
             type=pep440,pattern={{raw}}
 
