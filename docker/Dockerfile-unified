@@ -171,9 +171,8 @@ FROM --platform=linux/amd64 golang:1.19-alpine as redis_exporter_builder
 
 WORKDIR /opt/redis_exporter
 
-RUN apk --no-cache add ca-certificates git
-
-RUN git clone https://github.com/oliver006/redis_exporter.git .
+RUN apk --no-cache add ca-certificates git && \
+    git clone https://github.com/oliver006/redis_exporter.git .
 
 # ADD . /go/src/github.com/oliver006/redis_exporter/
 
@@ -182,9 +181,9 @@ ARG TAG="[no-tag]"
 ARG GOARCH="amd64"
 
 RUN BUILD_DATE=$(date +%F-%T) CGO_ENABLED=0 GOOS=linux GOARCH=$GOARCH go build -o /redis_exporter \
-    -ldflags  "-s -w -extldflags \"-static\" -X main.BuildVersion=$TAG -X main.BuildCommitSha=$SHA1 -X main.BuildDate=$BUILD_DATE" .
-
-RUN [ "$GOARCH" = "amd64" ]  && /redis_exporter -version || ls -la /redis_exporter
+    -ldflags  "-s -w -extldflags \"-static\" -X main.BuildVersion=$TAG -X main.BuildCommitSha=$SHA1 -X main.BuildDate=$BUILD_DATE" . && \
+    /redis_exporter -version && \
+    ls -la /redis_exporter
 
 ###
 ### Stage #: runtime
