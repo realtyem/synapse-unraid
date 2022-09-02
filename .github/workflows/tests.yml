@@ -174,7 +174,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["pypy3.8", "pypy3.9", "pypy3.10"]
+        python-version: ["pypy3.8", "pypy3.9"]
         database: ["sqlite"]
         extras: ["all"]
         include:
@@ -185,7 +185,7 @@ jobs:
             extras: "all"
 
           # Newest Python with newest PostgreSQL
-          - python-version: "pypy3.10"
+          - python-version: "pypy3.9"
             database: "postgres"
             postgres-version: "14"
             extras: "all"
