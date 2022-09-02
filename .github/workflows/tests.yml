@@ -180,10 +180,19 @@ jobs:
       - uses: actions/checkout@v2
       # Install libs necessary for PyPy to build binary wheels for dependencies
       - run: sudo apt-get -qq install xmlsec1 libxml2-dev libxslt-dev
-      - uses: matrix-org/setup-python-poetry@v1
+
+
+
+
+      - uses: matrix-org/setup-python-poetry@dmr/try-newer-actions
         with:
           python-version: ${{ matrix.python-version }}
           extras: ${{ matrix.extras }}
+
+
+
+
+
       - run: poetry run trial --jobs=2 tests
       - name: Dump logs
         # Logs are most useful when the command fails, always include them.
