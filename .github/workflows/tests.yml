@@ -165,6 +165,7 @@ jobs:
           -exec echo "::endgroup::" \;
           || true
 
+
   trial-pypy:
     # Very slow; only run if the branch name includes 'pypy'
     # Note: sqlite only; no postgres. Completely untested since poetry move.
@@ -173,27 +174,50 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["pypy3.9"]
+        python-version: ["pypy3.8", "pypy3.9", "pypy3.10"]
+        database: ["sqlite"]
         extras: ["all"]
+        include:
+          # Oldest Python with PostgreSQL
+          - python-version: "pypy3.9"
+            database: "postgres"
+            postgres-version: "10"
+            extras: "all"
+
+          # Newest Python with newest PostgreSQL
+          - python-version: "pypy3.10"
+            database: "postgres"
+            postgres-version: "14"
+            extras: "all"
 
     steps:
       - uses: actions/checkout@v2
       # Install libs necessary for PyPy to build binary wheels for dependencies
       - run: sudo apt-get -qq install xmlsec1 libxml2-dev libxslt-dev
-
-
-
+      - name: Set up PostgreSQL ${{ matrix.postgres-version }}
+        if: ${{ matrix.postgres-version }}
+        run: |
+          docker run -d -p 5432:5432 \
+            -e POSTGRES_PASSWORD=postgres \
+            -e POSTGRES_INITDB_ARGS="--lc-collate C --lc-ctype C --encoding UTF8" \
+            postgres:${{ matrix.postgres-version }}
 
       - uses: matrix-org/setup-python-poetry@dmr/try-newer-actions
         with:
           python-version: ${{ matrix.python-version }}
           extras: ${{ matrix.extras }}
-
-
-
-
+      - name: Await PostgreSQL
+        if: ${{ matrix.postgres-version }}
+        timeout-minutes: 2
+        run: until pg_isready -h localhost; do sleep 1; done
 
       - run: poetry run trial --jobs=2 tests
+        env:
+          SYNAPSE_POSTGRES: ${{ matrix.database == 'postgres' || '' }}
+          SYNAPSE_POSTGRES_HOST: localhost
+          SYNAPSE_POSTGRES_USER: postgres
+          SYNAPSE_POSTGRES_PASSWORD: postgres
+
       - name: Dump logs
         # Logs are most useful when the command fails, always include them.
         if: ${{ always() }}
