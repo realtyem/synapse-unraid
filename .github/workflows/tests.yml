@@ -1,9 +1,9 @@
 name: Tests
 
 on:
-#  push:
-#    branches: ["develop", "release-*"]
-#  pull_request:
+  push:
+    branches: ["unraid_develop", "exp/*"]
+  pull_request:
   workflow_dispatch:
 
 concurrency:
