@@ -161,7 +161,7 @@ FROM debian:bullseye-slim AS deps_base
 # based on the same debian version as the synapse image, to make sure we get
 # the expected version of libc.
 
-FROM redis:6-bullseye AS redis_base
+FROM redis:7-bullseye AS redis_base
 
 # The redis exporter found at https://github.com/oliver006/redis_exporter
 #
