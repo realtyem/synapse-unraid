@@ -189,7 +189,7 @@ RUN BUILD_DATE=$(date +%F-%T) CGO_ENABLED=0 GOOS=linux GOARCH=$GOARCH go build -
 # The synapse auto compressor is from an image we build. It won't change much
 # so there's no reason to not have this pre-compiled and just borrow it.
 
-FROM realtyem/synapse-tools as compressor
+FROM realtyem/synapse-tools:latest as compressor
 
 
 ###
