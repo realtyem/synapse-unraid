@@ -36,7 +36,7 @@ jobs:
           flavor: |
             latest=${{ github.ref == 'refs/heads/unraid_develop' }}
           tags: |
-            type=raw,value=experimental-redis-metrics,enable=${{ github.ref == 'refs/heads/exp/redis_metrics_export' }}
+            type=raw,value=${{ github.ref_name }},enable=${{ github.ref != 'refs/heads/unraid_develop' }}
             type=raw,value=unified,enable=${{ github.ref == 'refs/heads/unraid_develop' }}
             type=pep440,pattern={{raw}}
 
