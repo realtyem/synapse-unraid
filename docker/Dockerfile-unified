@@ -137,8 +137,8 @@ RUN if [ -z "$TEST_ONLY_IGNORE_POETRY_LOCKFILE" ]; then \
 # ?4. DNS caching - Maybe. TODO
 # ?5. Grafana - Maybe. External is probably better. TODO
 # ?6. Postgres - Maybe. Internal server with external persistent storage db files. TODO
-# ?6a. Postgres metrics exporter
-# ?6b. Postgres Synapse auto compressor on cron.
+# 6a. Postgres metrics exporter
+# 6b. Postgres Synapse auto compressor. Add to cron later, after testing.
 # ?7. Coturn - Maybe. Notoriously hard to get it right. Lots of ports to expose. TODO
 
 # A base image with nginx and prometheus which we can copy into the
@@ -249,7 +249,10 @@ COPY --from=redis_exporter_builder /redis_exporter /usr/local/bin/redis_exporter
 COPY --from=redis_exporter_builder /etc/ssl/certs /etc/ssl/certs
 
 # Copy in the auto state compressor
-COPY --from=compressor /usr/local/bin/synapse_compress_state /usr/local/bin/synapse_auto_compressor /usr/local/bin/
+COPY --from=compressor /usr/local/bin/synapse_compress_state \
+    /usr/local/bin/synapse_auto_compressor \
+    /usr/local/bin/postgres_exporter \
+    /usr/local/bin/
 
 # Copy Synapse worker, nginx and supervisord configuration template files
 # The base start up script, used to generate some config files
