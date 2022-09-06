@@ -39,6 +39,7 @@
 # continue to work if so.
 
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -49,7 +50,7 @@ from jinja2 import Environment, FileSystemLoader
 
 MAIN_PROCESS_HTTP_LISTENER_PORT = 8080
 MAIN_PROCESS_HTTP_METRICS_LISTENER_PORT = 8060
-
+enable_compressor = False
 
 WORKERS_CONFIG: Dict[str, Dict[str, Any]] = {
     "pusher": {
@@ -683,6 +684,7 @@ def generate_worker_files(
         main_config_path=config_path,
         enable_redis=workers_in_use,
         enable_prometheus=enable_prometheus,
+        enable_compressor=enable_compressor,
     )
 
     convert(
@@ -751,10 +753,39 @@ def main(args: List[str], environ: MutableMapping[str, str]) -> None:
         log("Generating base homeserver config")
         generate_base_homeserver_config()
 
+    # Sanitize environment string
+    if "SYNAPSE_ENABLE_COMPRESSOR" in environ and "POSTGRES_PASSWORD" in environ:
+        check_compressor_string = str.lower(environ["SYNAPSE_ENABLE_COMPRESSOR"])
+        if check_compressor_string in ("true", "on", "1", "yes"):
+            enable_compressor = True
+
     # This script may be run multiple times (mostly by Complement, see note at top of file).
     # Don't re-configure workers in this instance.
     mark_filepath = "/conf/workers_have_been_configured"
     if not os.path.exists(mark_filepath):
+        # This gets added here instead of above so it only runs one time.
+        # Add cron service and crontab file if enabled in environment.
+        if enable_compressor is True:
+            shutil.copy("/conf/synapse_auto_compressor.job", "/etc/cron.d/")
+            convert(
+                "/conf/run_compressor.sh.j2",
+                "/conf/run_compressor.sh",
+                postgres_user=os.environ.get("POSTGRES_USER"),
+                postgres_password=os.environ.get("POSTGRES_PASSWORD"),
+                postgres_db=os.environ.get("POSTGRES_DB"),
+                postgres_host=os.environ.get("POSTGRES_HOST"),
+                postgres_port=os.environ.get("POSTGRES_PORT"),
+            )
+            # Make the custom script we just made executable, as it's run by cron.
+            subprocess.run(
+                ["chmod", "0755", "/conf/run_compressor.sh"], stdout=subprocess.PIPE
+            ).stdout.decode("utf-8")
+            # Actually add it to cron explicitly.
+            subprocess.run(
+                ["crontab", "/etc/cron.d/synapse_auto_compressor.job"],
+                stdout=subprocess.PIPE,
+            ).stdout.decode("utf-8")
+
         # Always regenerate all other config files
         generate_worker_files(environ, config_path, data_dir)
 
