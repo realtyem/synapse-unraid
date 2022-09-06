@@ -751,9 +751,15 @@ def main(args: List[str], environ: MutableMapping[str, str]) -> None:
     global enable_compressor
     global enable_prometheus
     global enable_redis_exporter
-    enable_compressor = getenv_bool("SYNAPSE_ENABLE_COMPRESSOR", False) and "POSTGRES_PASSWORD" in environ
+    enable_compressor = (
+        getenv_bool("SYNAPSE_ENABLE_COMPRESSOR", False)
+        and "POSTGRES_PASSWORD" in environ
+    )
     enable_prometheus = getenv_bool("SYNAPSE_METRICS", False)
-    enable_redis_exporter = getenv_bool("SYNAPSE_ENABLE_REDIS_METRIC_EXPORT", False) and enable_prometheus is True
+    enable_redis_exporter = (
+        getenv_bool("SYNAPSE_ENABLE_REDIS_METRIC_EXPORT", False)
+        and enable_prometheus is True
+    )
 
     # override SYNAPSE_NO_TLS, we don't support TLS in worker mode,
     # this needs to be handled by a frontend proxy
