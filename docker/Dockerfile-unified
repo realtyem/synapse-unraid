@@ -207,6 +207,7 @@ RUN \
    --mount=type=cache,target=/var/cache/apt,sharing=locked \
    --mount=type=cache,target=/var/lib/apt,sharing=locked \
   apt-get update -qq && apt-get install -yqq \
+    cron \
     curl \
     gosu \
     libjpeg62-turbo \
@@ -259,7 +260,7 @@ COPY --from=compressor /usr/local/bin/synapse_compress_state \
 # The worker configuration start up script. Will start supervisord.
 COPY ./docker/start.py ./docker/configure_workers_and_start.py /
 
-# Various config templates.
+# Various config and script templates.
 COPY ./docker/conf ./docker/conf-workers /conf/
 
 # Copy a script to prefix log lines with the supervisor program name
