@@ -192,7 +192,6 @@ jobs:
 #          -exec echo "::endgroup::" \;
 #          || true
 
-<<<<<<< HEAD
 #  sytest:
 #    if: ${{ !failure() && !cancelled() }}
 #    needs: calculate-test-jobs
@@ -206,26 +205,8 @@ jobs:
 #        POSTGRES: ${{ matrix.job.postgres && 1}}
 #        MULTI_POSTGRES: ${{ (matrix.job.postgres == 'multi-postgres') && 1}}
 #        WORKERS: ${{ matrix.job.workers && 1 }}
-#        REDIS: 1
 #        BLACKLIST: ${{ matrix.job.workers && 'synapse-blacklist-with-workers' }}
 #        TOP: ${{ github.workspace }}
-=======
-  sytest:
-    if: ${{ !failure() && !cancelled() }}
-    needs: calculate-test-jobs
-    runs-on: ubuntu-latest
-    container:
-      image: matrixdotorg/sytest-synapse:${{ matrix.job.sytest-tag }}
-      volumes:
-        - ${{ github.workspace }}:/src
-      env:
-        SYTEST_BRANCH: ${{ github.head_ref }}
-        POSTGRES: ${{ matrix.job.postgres && 1}}
-        MULTI_POSTGRES: ${{ (matrix.job.postgres == 'multi-postgres') && 1}}
-        WORKERS: ${{ matrix.job.workers && 1 }}
-        BLACKLIST: ${{ matrix.job.workers && 'synapse-blacklist-with-workers' }}
-        TOP: ${{ github.workspace }}
->>>>>>> develop
 
 #    strategy:
 #      fail-fast: false
