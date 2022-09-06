@@ -192,45 +192,45 @@ jobs:
 #          -exec echo "::endgroup::" \;
 #          || true
 
-#  sytest:
-#    if: ${{ !failure() && !cancelled() }}
-#    needs: calculate-test-jobs
-#    runs-on: ubuntu-latest
-#    container:
-#      image: matrixdotorg/sytest-synapse:${{ matrix.job.sytest-tag }}
-#      volumes:
-#        - ${{ github.workspace }}:/src
-#      env:
-#        SYTEST_BRANCH: ${{ github.head_ref }}
-#        POSTGRES: ${{ matrix.job.postgres && 1}}
-#        MULTI_POSTGRES: ${{ (matrix.job.postgres == 'multi-postgres') && 1}}
-#        WORKERS: ${{ matrix.job.workers && 1 }}
-#        BLACKLIST: ${{ matrix.job.workers && 'synapse-blacklist-with-workers' }}
-#        TOP: ${{ github.workspace }}
+  sytest:
+    if: ${{ !failure() && !cancelled() }}
+    needs: calculate-test-jobs
+    runs-on: ubuntu-latest
+    container:
+      image: matrixdotorg/sytest-synapse:${{ matrix.job.sytest-tag }}
+      volumes:
+        - ${{ github.workspace }}:/src
+      env:
+        SYTEST_BRANCH: ${{ github.head_ref }}
+        POSTGRES: ${{ matrix.job.postgres && 1}}
+        MULTI_POSTGRES: ${{ (matrix.job.postgres == 'multi-postgres') && 1}}
+        WORKERS: ${{ matrix.job.workers && 1 }}
+        BLACKLIST: ${{ matrix.job.workers && 'synapse-blacklist-with-workers' }}
+        TOP: ${{ github.workspace }}
 
-#    strategy:
-#      fail-fast: false
-#      matrix:
-#        job: ${{ fromJson(needs.calculate-test-jobs.outputs.sytest_test_matrix) }}
+    strategy:
+      fail-fast: false
+      matrix:
+        job: ${{ fromJson(needs.calculate-test-jobs.outputs.sytest_test_matrix) }}
 
-#    steps:
-#      - uses: actions/checkout@v2
-#      - name: Prepare test blacklist
-#        run: cat sytest-blacklist .ci/worker-blacklist > synapse-blacklist-with-workers
-#      - name: Run SyTest
-#        run: /bootstrap.sh synapse
-#        working-directory: /src
-#      - name: Summarise results.tap
-#        if: ${{ always() }}
-#        run: /sytest/scripts/tap_to_gha.pl /logs/results.tap
-#      - name: Upload SyTest logs
-#        uses: actions/upload-artifact@v2
-#        if: ${{ always() }}
-#        with:
-#          name: Sytest Logs - ${{ job.status }} - (${{ join(matrix.job.*, ', ') }})
-#          path: |
-#            /logs/results.tap
-#            /logs/**/*.log*
+    steps:
+      - uses: actions/checkout@v2
+      - name: Prepare test blacklist
+        run: cat sytest-blacklist .ci/worker-blacklist > synapse-blacklist-with-workers
+      - name: Run SyTest
+        run: /bootstrap.sh synapse
+        working-directory: /src
+      - name: Summarise results.tap
+        if: ${{ always() }}
+        run: /sytest/scripts/tap_to_gha.pl /logs/results.tap
+      - name: Upload SyTest logs
+        uses: actions/upload-artifact@v2
+        if: ${{ always() }}
+        with:
+          name: Sytest Logs - ${{ job.status }} - (${{ join(matrix.job.*, ', ') }})
+          path: |
+            /logs/results.tap
+            /logs/**/*.log*
 
   export-data:
     if: ${{ !failure() && !cancelled() }} # Allow previous steps to be skipped, but not fail
