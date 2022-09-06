@@ -740,6 +740,7 @@ def generate_worker_log_config(
 
 
 def main(args: List[str], environ: MutableMapping[str, str]) -> None:
+    global enable_compressor
     config_dir = environ.get("SYNAPSE_CONFIG_DIR", "/data")
     config_path = environ.get("SYNAPSE_CONFIG_PATH", config_dir + "/homeserver.yaml")
     data_dir = environ.get("SYNAPSE_DATA_DIR", "/data")
