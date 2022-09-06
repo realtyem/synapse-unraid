@@ -650,8 +650,6 @@ def generate_worker_files(
 
     workers_in_use = len(worker_types) > 0
 
-    obj_environ: Dict[str, Any] = dict(environ)
-
     # Shared homeserver config
     convert(
         "/conf/shared.yaml.j2",
