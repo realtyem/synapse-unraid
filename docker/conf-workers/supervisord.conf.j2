@@ -40,9 +40,7 @@ stderr_logfile=/dev/stderr
 stderr_logfile_maxbytes=0
 username=redis_exporter
 autorestart=true
-
-# if Redis is disabled, this should be too
-autostart={{ enable_redis }}
+autostart={{ enable_redis_exporter }}
 
 [program:prometheus]
 command=/usr/local/bin/prefix-log /usr/bin/prometheus --web.listen-address="0.0.0.0:9090" --config.file="/etc/prometheus/prometheus.yml" --storage.tsdb.retention.time=1y --storage.tsdb.wal-compression  --storage.remote.read-sample-limit=0  --storage.remote.read-concurrent-limit=0 --query.max-concurrency=9999

@@ -51,6 +51,8 @@ from jinja2 import Environment, FileSystemLoader
 MAIN_PROCESS_HTTP_LISTENER_PORT = 8080
 MAIN_PROCESS_HTTP_METRICS_LISTENER_PORT = 8060
 enable_compressor = False
+enable_prometheus = False
+enable_redis_exporter = False
 
 WORKERS_CONFIG: Dict[str, Dict[str, Any]] = {
     "pusher": {
@@ -300,6 +302,10 @@ def convert(src: str, dst: str, **template_vars: object) -> None:
         outfile.write(rendered)
 
 
+def getenv_bool(name: str, default: bool = False) -> bool:
+    return os.getenv(name, str(default)).lower() in ("yes", "y", "true", "1", "t", "on")
+
+
 def add_sharding_to_shared_config(
     shared_config: dict,
     worker_type: str,
@@ -442,6 +448,11 @@ def generate_worker_files(
     # the main Synapse process as well as all workers.
     # It is intended mainly for disabling functionality when certain workers are spun up,
     # and adding a replication listener.
+
+    # pass through global variables for the add-ons
+    # the auto compressor is taken care of in main
+    global enable_prometheus
+    global enable_redis_exporter
 
     # First read the original config file and extract the listeners block. Then we'll add
     # another listener for replication. Later we'll write out the result to the shared
@@ -639,15 +650,7 @@ def generate_worker_files(
 
     workers_in_use = len(worker_types) > 0
 
-    enable_prometheus = False
-
     obj_environ: Dict[str, Any] = dict(environ)
-
-    if "SYNAPSE_METRICS" in environ:
-        check_metric_string = str.lower(environ["SYNAPSE_METRICS"])
-        if check_metric_string in ("true", "on", "1", "yes"):
-            enable_prometheus = True
-            obj_environ["SYNAPSE_METRICS"] = True
 
     # Shared homeserver config
     convert(
@@ -683,6 +686,7 @@ def generate_worker_files(
         "/etc/supervisor/supervisord.conf",
         main_config_path=config_path,
         enable_redis=workers_in_use,
+        enable_redis_exporter=enable_redis_exporter,
         enable_prometheus=enable_prometheus,
         enable_compressor=enable_compressor,
     )
@@ -740,10 +744,16 @@ def generate_worker_log_config(
 
 
 def main(args: List[str], environ: MutableMapping[str, str]) -> None:
-    global enable_compressor
     config_dir = environ.get("SYNAPSE_CONFIG_DIR", "/data")
     config_path = environ.get("SYNAPSE_CONFIG_PATH", config_dir + "/homeserver.yaml")
     data_dir = environ.get("SYNAPSE_DATA_DIR", "/data")
+    # Enable add-ons from environment string
+    global enable_compressor
+    global enable_prometheus
+    global enable_redis_exporter
+    enable_compressor = getenv_bool("SYNAPSE_ENABLE_COMPRESSOR", False) and "POSTGRES_PASSWORD" in environ
+    enable_prometheus = getenv_bool("SYNAPSE_METRICS", False)
+    enable_redis_exporter = getenv_bool("SYNAPSE_ENABLE_REDIS_METRIC_EXPORT", False) and enable_prometheus is True
 
     # override SYNAPSE_NO_TLS, we don't support TLS in worker mode,
     # this needs to be handled by a frontend proxy
@@ -753,12 +763,6 @@ def main(args: List[str], environ: MutableMapping[str, str]) -> None:
     if not os.path.exists(config_path):
         log("Generating base homeserver config")
         generate_base_homeserver_config()
-
-    # Sanitize environment string
-    if "SYNAPSE_ENABLE_COMPRESSOR" in environ and "POSTGRES_PASSWORD" in environ:
-        check_compressor_string = str.lower(environ["SYNAPSE_ENABLE_COMPRESSOR"])
-        if check_compressor_string in ("true", "on", "1", "yes"):
-            enable_compressor = True
 
     # This script may be run multiple times (mostly by Complement, see note at top of file).
     # Don't re-configure workers in this instance.
