@@ -40,19 +40,19 @@ jobs:
       - name: Check line endings
         run: scripts-dev/check_line_terminators.sh
 
-  #lint-newsfile:
-  #  if: ${{ github.base_ref == 'develop'  || contains(github.base_ref, 'release-') }}
-  #  runs-on: ubuntu-latest
-  #  steps:
-  #    - uses: actions/checkout@v2
-  #      with:
-  #        ref: ${{ github.event.pull_request.head.sha }}
-  #        fetch-depth: 0
-  #    - uses: actions/setup-python@v2
-  #    - run: "pip install 'towncrier>=18.6.0rc1'"
-  #    - run: scripts-dev/check-newsfragment.sh
-  #      env:
-  #        PULL_REQUEST_NUMBER: ${{ github.event.number }}
+#  lint-newsfile:
+#    if: ${{ github.base_ref == 'develop'  || contains(github.base_ref, 'release-') }}
+#    runs-on: ubuntu-latest
+#    steps:
+#      - uses: actions/checkout@v2
+#        with:
+#          ref: ${{ github.event.pull_request.head.sha }}
+#          fetch-depth: 0
+#      - uses: actions/setup-python@v2
+#      - run: "pip install 'towncrier>=18.6.0rc1'"
+#      - run: scripts-dev/check-newsfragment.sh
+#        env:
+#          PULL_REQUEST_NUMBER: ${{ github.event.number }}
 
   lint-pydantic:
     runs-on: ubuntu-latest
@@ -94,40 +94,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-<<<<<<< HEAD
-        python-version: ["3.9", "3.10"]
-        database: ["sqlite"]
-        extras: ["all"]
-        is_pr:
-          - ${{ startsWith(github.ref, 'refs/pull/') }}
-
-        # If we're a PR then we only test min and max python.
-        exclude:
-          - is_pr: true
-            python-version: 3.8
-          - is_pr: true
-            python-version: 3.9
-
-        include:
-          # Newest Python without optional deps
-          - python-version: "3.10"
-            extras: ""
-
-          # Oldest Python with PostgreSQL
-          - python-version: "3.7"
-            database: "postgres"
-            postgres-version: "10"
-            extras: "all"
-
-          # Newest Python with newest PostgreSQL
-          - python-version: "3.10"
-            database: "postgres"
-            postgres-version: "14"
-            extras: "all"
-=======
-        job:  ${{ fromJson(needs.calculate-test-jobs.outputs.trial_test_matrix) }}
->>>>>>> develop
-
+        job: ${{ fromJson(needs.calculate-test-jobs.outputs.trial_test_matrix) }}
     steps:
       - uses: actions/checkout@v2
       - run: sudo apt-get -qq install xmlsec1
@@ -225,65 +192,28 @@ jobs:
 #          -exec echo "::endgroup::" \;
 #          || true
 
-<<<<<<< HEAD
-# This pulls the matrxdotorg image, not ours. Will need to fork to use.
 #  sytest:
 #    if: ${{ !failure() && !cancelled() }}
-#    needs: linting-done
+#    needs: calculate-test-jobs
 #    runs-on: ubuntu-latest
 #    container:
-#      image: matrixdotorg/sytest-synapse:${{ matrix.sytest-tag }}
+#      image: matrixdotorg/sytest-synapse:${{ matrix.job.sytest-tag }}
 #      volumes:
 #        - ${{ github.workspace }}:/src
 #      env:
 #        SYTEST_BRANCH: ${{ github.head_ref }}
-#        POSTGRES: ${{ matrix.postgres && 1}}
-#        MULTI_POSTGRES: ${{ (matrix.postgres == 'multi-postgres') && 1}}
-#        WORKERS: ${{ matrix.workers && 1 }}
-#        REDIS: ${{ matrix.redis && 1 }}
-#        BLACKLIST: ${{ matrix.workers && 'synapse-blacklist-with-workers' }}
+#        POSTGRES: ${{ matrix.job.postgres && 1}}
+#        MULTI_POSTGRES: ${{ (matrix.job.postgres == 'multi-postgres') && 1}}
+#        WORKERS: ${{ matrix.job.workers && 1 }}
+#        REDIS: 1
+#        BLACKLIST: ${{ matrix.job.workers && 'synapse-blacklist-with-workers' }}
 #        TOP: ${{ github.workspace }}
-#
+
 #    strategy:
 #      fail-fast: false
 #      matrix:
-#        include:
-#          - sytest-tag: testing
-#            postgres: postgres
-#            workers: monolith
-#
-#          - sytest-tag: testing
-#            postgres: multi-postgres
-#            workers: monolith
-#
-#          - sytest-tag: buster
-#            postgres: postgres
-#            workers: monolith
-#
-#          - sytest-tag: buster
-#            postgres: multi-postgres
-#            workers: monolith
-#
-#          - sytest-tag: testing
-#            postgres: postgres
-#            workers: workers
-#            redis: redis
-#
-#          - sytest-tag: testing
-#            postgres: multi-postgres
-#            workers: workers
-#            redis: redis
-#
-#          - sytest-tag: buster
-#            postgres: postgres
-#            workers: workers
-#            redis: redis
-#
-#          - sytest-tag: buster
-#            postgres: multi-postgres
-#            workers: workers
-#            redis: redis
-#
+#        job: ${{ fromJson(needs.calculate-test-jobs.outputs.sytest_test_matrix) }}
+
 #    steps:
 #      - uses: actions/checkout@v2
 #      - name: Prepare test blacklist
@@ -298,52 +228,10 @@ jobs:
 #        uses: actions/upload-artifact@v2
 #        if: ${{ always() }}
 #        with:
-#          name: Sytest Logs - ${{ job.status }} - (${{ join(matrix.*, ', ') }})
+#          name: Sytest Logs - ${{ job.status }} - (${{ join(matrix.job.*, ', ') }})
 #          path: |
 #            /logs/results.tap
 #            /logs/**/*.log*
-=======
-  sytest:
-    if: ${{ !failure() && !cancelled() }}
-    needs: calculate-test-jobs
-    runs-on: ubuntu-latest
-    container:
-      image: matrixdotorg/sytest-synapse:${{ matrix.job.sytest-tag }}
-      volumes:
-        - ${{ github.workspace }}:/src
-      env:
-        SYTEST_BRANCH: ${{ github.head_ref }}
-        POSTGRES: ${{ matrix.job.postgres && 1}}
-        MULTI_POSTGRES: ${{ (matrix.job.postgres == 'multi-postgres') && 1}}
-        WORKERS: ${{ matrix.job.workers && 1 }}
-        REDIS: 1
-        BLACKLIST: ${{ matrix.job.workers && 'synapse-blacklist-with-workers' }}
-        TOP: ${{ github.workspace }}
-
-    strategy:
-      fail-fast: false
-      matrix:
-        job: ${{ fromJson(needs.calculate-test-jobs.outputs.sytest_test_matrix) }}
-
-    steps:
-      - uses: actions/checkout@v2
-      - name: Prepare test blacklist
-        run: cat sytest-blacklist .ci/worker-blacklist > synapse-blacklist-with-workers
-      - name: Run SyTest
-        run: /bootstrap.sh synapse
-        working-directory: /src
-      - name: Summarise results.tap
-        if: ${{ always() }}
-        run: /sytest/scripts/tap_to_gha.pl /logs/results.tap
-      - name: Upload SyTest logs
-        uses: actions/upload-artifact@v2
-        if: ${{ always() }}
-        with:
-          name: Sytest Logs - ${{ job.status }} - (${{ join(matrix.job.*, ', ') }})
-          path: |
-            /logs/results.tap
-            /logs/**/*.log*
->>>>>>> develop
 
   export-data:
     if: ${{ !failure() && !cancelled() }} # Allow previous steps to be skipped, but not fail
