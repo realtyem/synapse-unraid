@@ -53,6 +53,7 @@ MAIN_PROCESS_HTTP_METRICS_LISTENER_PORT = 8060
 enable_compressor = False
 enable_prometheus = False
 enable_redis_exporter = False
+enable_postgres_exporter = False
 
 WORKERS_CONFIG: Dict[str, Dict[str, Any]] = {
     "pusher": {
@@ -685,6 +686,7 @@ def generate_worker_files(
         main_config_path=config_path,
         enable_redis=workers_in_use,
         enable_redis_exporter=enable_redis_exporter,
+        enable_postgres_exporter=enable_postgres_exporter,
         enable_prometheus=enable_prometheus,
         enable_compressor=enable_compressor,
     )
@@ -749,6 +751,7 @@ def main(args: List[str], environ: MutableMapping[str, str]) -> None:
     global enable_compressor
     global enable_prometheus
     global enable_redis_exporter
+    global enable_postgres_exporter
     enable_compressor = (
         getenv_bool("SYNAPSE_ENABLE_COMPRESSOR", False)
         and "POSTGRES_PASSWORD" in environ
@@ -757,6 +760,10 @@ def main(args: List[str], environ: MutableMapping[str, str]) -> None:
     enable_redis_exporter = (
         getenv_bool("SYNAPSE_ENABLE_REDIS_METRIC_EXPORT", False)
         and enable_prometheus is True
+    )
+    enable_postgres_exporter = (
+        getenv_bool("SYNAPSE_ENABLE_POSTGRES_METRIC_EXPORT", False)
+        and "POSTGRES_PASSWORD" in environ
     )
 
     # override SYNAPSE_NO_TLS, we don't support TLS in worker mode,
@@ -793,6 +800,22 @@ def main(args: List[str], environ: MutableMapping[str, str]) -> None:
             subprocess.run(
                 ["crontab", "/etc/cron.d/synapse_auto_compressor.job"],
                 stdout=subprocess.PIPE,
+            ).stdout.decode("utf-8")
+
+        # Make postgres_exporter custom script if enabled in environment.
+        if enable_postgres_exporter is True:
+            convert(
+                "/conf/run_pg_exporter.sh.j2",
+                "/conf/run_pg_exporter.sh",
+                postgres_user=os.environ.get("POSTGRES_USER"),
+                postgres_password=os.environ.get("POSTGRES_PASSWORD"),
+                postgres_db=os.environ.get("POSTGRES_DB"),
+                postgres_host=os.environ.get("POSTGRES_HOST"),
+                postgres_port=os.environ.get("POSTGRES_PORT"),
+            )
+            # Make the custom script we just made executable, as it's run by cron.
+            subprocess.run(
+                ["chmod", "0755", "/conf/run_pg_exporter.sh"], stdout=subprocess.PIPE
             ).stdout.decode("utf-8")
 
         # Always regenerate all other config files
