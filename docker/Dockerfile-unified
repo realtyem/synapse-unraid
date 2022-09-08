@@ -144,13 +144,15 @@ RUN if [ -z "$TEST_ONLY_IGNORE_POETRY_LOCKFILE" ]; then \
 # 3. Prometheus - to collect the metrics that Synapse exposes if enabled.
 # 3a. Redis metrics exporter
 # 3b. Nginx metrics exporter
-# ?4. DNS caching - Maybe. TODO
-# ?5. Grafana - Maybe. External is probably better. TODO
-# ?6. Postgres - Maybe. Internal server with external persistent storage db files. TODO
-# 6a. Postgres metrics exporter
-# 6b. Postgres Synapse auto compressor. Add to cron later, after testing.
-# ?7. Coturn - Maybe. Notoriously hard to get it right. Lots of ports to expose. TODO
-
+# ?4. Grafana - Maybe. External is probably better. TODO
+# ?5. Postgres - Maybe. Internal server with external persistent storage db files. TODO
+# 5a. Postgres metrics exporter
+# 5b. Postgres Synapse auto compressor. Add to cron later, after testing.
+# ?6. Coturn - Maybe. Notoriously hard to get it right. Lots of ports to expose. TODO
+# Not Adding:
+# ?1. DNS caching - To many ways to get this wrong. This is better as an external
+#     service like pihole or unbound. Getting docker to route through it can be rough.
+#
 # A base image with nginx and prometheus which we can copy into the
 # target image. For repeated rebuilds, this is much faster than apt installing
 # each time.
@@ -174,32 +176,10 @@ FROM debian:bullseye-slim AS deps_base
 
 FROM redis:7-bullseye AS redis_base
 
-# The redis exporter found at https://github.com/oliver006/redis_exporter
-#
-# Uses an alpine container to build the exporter itself with go.
-
-FROM --platform=linux/amd64 golang:1.19-alpine as redis_exporter_builder
-
-WORKDIR /opt/redis_exporter
-
-RUN apk --no-cache add ca-certificates git && \
-    git clone https://github.com/oliver006/redis_exporter.git .
-
-# ADD . /go/src/github.com/oliver006/redis_exporter/
-
-ARG SHA1="[no-sha]"
-ARG TAG="[no-tag]"
-ARG GOARCH="amd64"
-
-RUN BUILD_DATE=$(date +%F-%T) CGO_ENABLED=0 GOOS=linux GOARCH=$GOARCH go build -o /redis_exporter \
-    -ldflags  "-s -w -extldflags \"-static\" -X main.BuildVersion=$TAG -X main.BuildCommitSha=$SHA1 -X main.BuildDate=$BUILD_DATE" . && \
-    /redis_exporter -version && \
-    ls -la /redis_exporter
-
 # The synapse auto compressor is from an image we build. It won't change much
 # so there's no reason to not have this pre-compiled and just borrow it.
 
-FROM realtyem/synapse-tools:latest as compressor
+FROM realtyem/synapse-tools:latest as tools
 
 
 ###
@@ -256,11 +236,11 @@ COPY --from=deps_base /usr/bin/prometheus /usr/bin
 COPY --from=deps_base /usr/share/prometheus/* /usr/share/prometheus
 
 # Copy in the redis_exporter
-COPY --from=redis_exporter_builder /redis_exporter /usr/local/bin/redis_exporter
-COPY --from=redis_exporter_builder /etc/ssl/certs /etc/ssl/certs
+COPY --from=tools /usr/local/bin/redis_exporter /usr/local/bin/redis_exporter
+# COPY --from=tools /etc/ssl/certs /etc/ssl/certs
 
 # Copy in the auto state compressor
-COPY --from=compressor /usr/local/bin/synapse_compress_state \
+COPY --from=tools /usr/local/bin/synapse_compress_state \
     /usr/local/bin/synapse_auto_compressor \
     /usr/local/bin/postgres_exporter \
     /usr/local/bin/
