@@ -5,8 +5,12 @@
 !contrib/prometheus
 !docker
 !synapse
+!rust
 !README.rst
 !pyproject.toml
 !poetry.lock
+!build_rust.py
+
+rust/target
 
 **/__pycache__
