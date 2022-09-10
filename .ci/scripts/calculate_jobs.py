@@ -26,26 +26,26 @@ IS_PR = os.environ["GITHUB_REF"].startswith("refs/pull/")
 
 trial_sqlite_tests = [
     {
-        "python-version": "3.7",
+        "python-version": "3.10",
         "database": "sqlite",
         "extras": "all",
     }
 ]
 
-if not IS_PR:
-    trial_sqlite_tests.extend(
-        {
-            "python-version": version,
-            "database": "sqlite",
-            "extras": "all",
-        }
-        for version in ("3.8", "3.9", "3.10")
-    )
+#if not IS_PR:
+#    trial_sqlite_tests.extend(
+#        {
+#            "python-version": version,
+#            "database": "sqlite",
+#            "extras": "all",
+#        }
+#        for version in ("3.8", "3.9", "3.10")
+#    )
 
 
 trial_postgres_tests = [
     {
-        "python-version": "3.7",
+        "python-version": "3.10",
         "database": "postgres",
         "postgres-version": "10",
         "extras": "all",
@@ -64,7 +64,7 @@ if not IS_PR:
 
 trial_no_extra_tests = [
     {
-        "python-version": "3.7",
+        "python-version": "3.10",
         "database": "sqlite",
         "extras": "",
     }
