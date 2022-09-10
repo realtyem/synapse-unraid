@@ -32,7 +32,7 @@ trial_sqlite_tests = [
     }
 ]
 
-#if not IS_PR:
+# if not IS_PR:
 #    trial_sqlite_tests.extend(
 #        {
 #            "python-version": version,
