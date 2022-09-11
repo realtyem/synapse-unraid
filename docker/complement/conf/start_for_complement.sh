@@ -59,7 +59,6 @@ if [[ -n "$SYNAPSE_COMPLEMENT_USE_WORKERS" ]]; then
       synchrotron, \
       appservice, \
       account_data, \
-      presence, \
       to_device, \
       pusher"
 
