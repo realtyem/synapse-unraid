@@ -1,9 +1,8 @@
-name: Tests
+name: Pypy Tests
 
 on:
   push:
-    branches: ["unraid_develop", "exp/*", "!exp/pypy"]
-  pull_request:
+    branches: ["exp/pypy"]
   workflow_dispatch:
 
 concurrency:
@@ -34,7 +33,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: 'pypy3.9'
       - run: pip install .
       - run: scripts-dev/generate_sample_config.sh --check
       - run: scripts-dev/config-lint.sh
@@ -45,14 +44,44 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: 'pypy3.9'
       - run: "pip install 'click==8.1.1' 'GitPython>=3.1.20'"
       - run: scripts-dev/check_schema_delta.py --force-colors
 
-  lint:
-    uses: "matrix-org/backend-meta/.github/workflows/python-poetry-ci.yml@v1"
-    with:
-      typechecking-extras: "all"
+  lint-style:
+#   taken from below repository and modified for pypy3.9
+#    uses: "matrix-org/backend-meta/.github/workflows/python-poetry-ci.yml@v1"
+#    with:
+#      typechecking-extras: "all"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Setup Poetry
+        uses: matrix-org/setup-python-poetry@dmr/try-newer-actions
+        with:
+          python-version: 'pypy3.9'
+      - name: Import order (isort)
+        run: poetry run isort --check --diff .
+      - name: Code style (black)
+        run: poetry run black --check --diff .
+      - name: Semantic checks (flake8)
+        run: poetry run flake8
+
+  lint-typechecking:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Setup Poetry
+        uses: matrix-org/setup-python-poetry@dmr/try-newer-actions
+        with:
+          python-version: 'pypy3.9'
+          extras: "all"
+      - name: Restore/persist mypy's cache
+        uses: AustinScola/mypy-cache-github-action@df56268388422ee282636ee2c7a9cc55ec644a41
+      - name: Run mypy
+        run: poetry run mypy
 
   lint-crlf:
     runs-on: ubuntu-latest
@@ -84,8 +113,10 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
-      - uses: matrix-org/setup-python-poetry@v1
+      - run: sudo apt-get -qq install xmlsec1 libxml2-dev libxslt-dev
+      - uses: matrix-org/setup-python-poetry@dmr/try-newer-actions
         with:
+          python-version: 'pypy3.9'
           extras: "all"
       - run: poetry run scripts-dev/check_pydantic_models.py
 
@@ -129,7 +160,8 @@ jobs:
   linting-done:
     if: ${{ !cancelled() }} # Run this even if prior jobs were skipped
     needs:
-      - lint
+      - lint-style
+      - lint-typechecking
       - lint-crlf
 #      - lint-newsfile
       - lint-pydantic
@@ -141,7 +173,7 @@ jobs:
     steps:
       - run: "true"
 
-  calculate-test-jobs:
+  calculate-pypy-test-jobs:
     if: ${{ !cancelled() && !failure() }} # Allow previous steps to be skipped, but not fail
     needs: linting-done
     runs-on: ubuntu-latest
@@ -149,23 +181,23 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: 'pypy3.9'
       - id: get-matrix
-        run: .ci/scripts/calculate_jobs.py
+        run: .ci/scripts/calculate_pypy_jobs.py
     outputs:
       trial_test_matrix: ${{ steps.get-matrix.outputs.trial_test_matrix }}
       sytest_test_matrix: ${{ steps.get-matrix.outputs.sytest_test_matrix }}
 
   trial:
     if: ${{ !cancelled() && !failure() }} # Allow previous steps to be skipped, but not fail
-    needs: calculate-test-jobs
+    needs: calculate-pypy-test-jobs
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        job: ${{ fromJson(needs.calculate-test-jobs.outputs.trial_test_matrix) }}
+        job: ${{ fromJson(needs.calculate-pypy-test-jobs.outputs.trial_test_matrix) }}
     steps:
       - uses: actions/checkout@v3
-      - run: sudo apt-get -qq install xmlsec1
+      - run: sudo apt-get -qq install xmlsec1 libxml2-dev libxslt-dev
       - name: Set up PostgreSQL ${{ matrix.job.postgres-version }}
         if: ${{ matrix.job.postgres-version }}
         run: |
@@ -173,7 +205,7 @@ jobs:
             -e POSTGRES_PASSWORD=postgres \
             -e POSTGRES_INITDB_ARGS="--lc-collate C --lc-ctype C --encoding UTF8" \
             postgres:${{ matrix.job.postgres-version }}
-      - uses: matrix-org/setup-python-poetry@v1
+      - uses: matrix-org/setup-python-poetry@dmr/try-newer-actions
         with:
           python-version: ${{ matrix.job.python-version }}
           extras: ${{ matrix.job.extras }}
@@ -223,7 +255,7 @@ jobs:
 
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.7'
+          python-version: 'pypy3.7'
 
       # Calculating the old-deps actually takes a bunch of time, so we cache the
       # pyproject.toml / poetry.lock. We need to cache pyproject.toml as
@@ -246,9 +278,9 @@ jobs:
 
       # We only now install poetry so that `setup-python-poetry` caches the
       # right poetry.lock's dependencies.
-      - uses: matrix-org/setup-python-poetry@v1
+      - uses: matrix-org/setup-python-poetry@dmr/try-newer-actions
         with:
-          python-version: '3.7'
+          python-version: 'pypy3.7'
           extras: "all test"
 
       - run: poetry run trial -j2 tests
@@ -266,74 +298,74 @@ jobs:
           || true
 
 
-  trial-pypy:
+#  trial-pypy:
     # Very slow; only run if the branch name includes 'pypy'
     # Note: sqlite only; no postgres. Completely untested since poetry move.
-    if: ${{ contains(github.ref, 'pypy') && !failure() && !cancelled() }}
-    needs: linting-done
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["pypy3.8", "pypy3.9"]
-        database: ["sqlite"]
-        extras: ["all"]
-        include:
+#    if: ${{ contains(github.ref, 'pypy') && !failure() && !cancelled() }}
+#    needs: linting-done
+#    runs-on: ubuntu-latest
+#    strategy:
+#      matrix:
+#        python-version: ["pypy3.8", "pypy3.9"]
+#        database: ["sqlite"]
+#        extras: ["all"]
+#        include:
           # Oldest Python with PostgreSQL
-          - python-version: "pypy3.9"
-            database: "postgres"
-            postgres-version: "10"
-            extras: "all"
+#          - python-version: "pypy3.9"
+#            database: "postgres"
+#            postgres-version: "10"
+#            extras: "all"
 
           # Newest Python with newest PostgreSQL
-          - python-version: "pypy3.9"
-            database: "postgres"
-            postgres-version: "14"
-            extras: "all"
+#          - python-version: "pypy3.9"
+#            database: "postgres"
+#            postgres-version: "14"
+#            extras: "all"
 
-    steps:
-      - uses: actions/checkout@v3
+#    steps:
+#      - uses: actions/checkout@v3
       # Install libs necessary for PyPy to build binary wheels for dependencies
-      - run: sudo apt-get -qq install xmlsec1 libxml2-dev libxslt-dev
-      - name: Set up PostgreSQL ${{ matrix.postgres-version }}
-        if: ${{ matrix.postgres-version }}
-        run: |
-          docker run -d -p 5432:5432 \
-            -e POSTGRES_PASSWORD=postgres \
-            -e POSTGRES_INITDB_ARGS="--lc-collate C --lc-ctype C --encoding UTF8" \
-            postgres:${{ matrix.postgres-version }}
+#      - run: sudo apt-get -qq install xmlsec1 libxml2-dev libxslt-dev
+#      - name: Set up PostgreSQL ${{ matrix.postgres-version }}
+#        if: ${{ matrix.postgres-version }}
+#        run: |
+#          docker run -d -p 5432:5432 \
+#            -e POSTGRES_PASSWORD=postgres \
+#            -e POSTGRES_INITDB_ARGS="--lc-collate C --lc-ctype C --encoding UTF8" \
+#            postgres:${{ matrix.postgres-version }}
 
-      - uses: matrix-org/setup-python-poetry@dmr/try-newer-actions
-        with:
-          python-version: ${{ matrix.python-version }}
-          extras: ${{ matrix.extras }}
-      - name: Await PostgreSQL
-        if: ${{ matrix.postgres-version }}
-        timeout-minutes: 2
-        run: until pg_isready -h localhost; do sleep 1; done
+#      - uses: matrix-org/setup-python-poetry@dmr/try-newer-actions
+#        with:
+#          python-version: ${{ matrix.python-version }}
+#          extras: ${{ matrix.extras }}
+#      - name: Await PostgreSQL
+#        if: ${{ matrix.postgres-version }}
+#        timeout-minutes: 2
+#        run: until pg_isready -h localhost; do sleep 1; done
 
-      - run: poetry run trial --jobs=2 tests
-        env:
-          SYNAPSE_POSTGRES: ${{ matrix.database == 'postgres' || '' }}
-          SYNAPSE_POSTGRES_HOST: localhost
-          SYNAPSE_POSTGRES_USER: postgres
-          SYNAPSE_POSTGRES_PASSWORD: postgres
+#      - run: poetry run trial --jobs=2 tests
+#        env:
+#          SYNAPSE_POSTGRES: ${{ matrix.database == 'postgres' || '' }}
+#          SYNAPSE_POSTGRES_HOST: localhost
+#          SYNAPSE_POSTGRES_USER: postgres
+#          SYNAPSE_POSTGRES_PASSWORD: postgres
 
-      - name: Dump logs
+#      - name: Dump logs
         # Logs are most useful when the command fails, always include them.
-        if: ${{ always() }}
+#        if: ${{ always() }}
         # Note: Dumps to workflow logs instead of using actions/upload-artifact
         #       This keeps logs colocated with failing jobs
         #       It also ignores find's exit code; this is a best effort affair
-        run: >-
-          find _trial_temp -name '*.log'
-          -exec echo "::group::{}" \;
-          -exec cat {} \;
-          -exec echo "::endgroup::" \;
-          || true
+#        run: >-
+#          find _trial_temp -name '*.log'
+#          -exec echo "::group::{}" \;
+#          -exec cat {} \;
+#          -exec echo "::endgroup::" \;
+#          || true
 
   sytest:
     if: ${{ !failure() && !cancelled() }}
-    needs: calculate-test-jobs
+    needs: calculate-pypy-test-jobs
     runs-on: ubuntu-latest
     container:
       image: matrixdotorg/sytest-synapse:${{ matrix.job.sytest-tag }}
@@ -350,10 +382,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        job: ${{ fromJson(needs.calculate-test-jobs.outputs.sytest_test_matrix) }}
+        job: ${{ fromJson(needs.calculate-pypy-test-jobs.outputs.sytest_test_matrix) }}
 
     steps:
       - uses: actions/checkout@v3
+      - run: apt-get -qq install xmlsec1 libxml2-dev libxslt-dev
       - name: Prepare test blacklist
         run: cat sytest-blacklist .ci/worker-blacklist > synapse-blacklist-with-workers
 
@@ -402,9 +435,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - run: sudo apt-get -qq install xmlsec1
-      - uses: matrix-org/setup-python-poetry@v1
+      - run: sudo apt-get -qq install xmlsec1 libxml2-dev libxslt-dev
+      - uses: matrix-org/setup-python-poetry@dmr/try-newer-actions
         with:
+          python-version: 'pypy3.9'
           extras: "postgres"
       - run: .ci/scripts/test_export_data_command.sh
 
@@ -417,10 +451,10 @@ jobs:
     strategy:
       matrix:
         include:
-          - python-version: "3.7"
+          - python-version: "pypy3.9"
             postgres-version: "10"
 
-          - python-version: "3.10"
+          - python-version: "pypy3.9"
             postgres-version: "14"
 
     services:
@@ -439,8 +473,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-      - run: sudo apt-get -qq install xmlsec1
-      - uses: matrix-org/setup-python-poetry@v1
+      - run: sudo apt-get -qq install xmlsec1 libxml2-dev libxslt-dev
+      - uses: matrix-org/setup-python-poetry@dmr/try-newer-actions
         with:
           python-version: ${{ matrix.python-version }}
           extras: "postgres"
@@ -510,12 +544,13 @@ jobs:
     if: ${{ always() }}
     needs:
       - check-sampleconfig
-      - lint
+      - lint-style
+      - lint-typechecking
       - lint-crlf
 #      - lint-newsfile
       - trial
       - trial-olddeps
-#      - sytest
+      - sytest
       - export-data
       - portdb
       - complement
