@@ -5,7 +5,7 @@ name: Build docker images
 on:
   push:
     tags: ["v*"]
-    branches: [ unraid_develop, exp/* ]
+    branches: [ "unraid_develop", "exp/*", "!exp/pypy" ]
   workflow_dispatch:
 
 permissions:

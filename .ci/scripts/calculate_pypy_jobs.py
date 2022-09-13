@@ -16,9 +16,6 @@
 # Calculate the trial jobs to run based on if we're in a PR or not.
 
 import json
-import os
-
-IS_PR = os.environ["GITHUB_REF"].startswith("refs/pull/")
 
 # First calculate the various trial jobs.
 #
@@ -32,36 +29,20 @@ trial_sqlite_tests = [
     }
 ]
 
-if not IS_PR:
-    trial_sqlite_tests.extend(
-        {
-            "python-version": version,
-            "database": "sqlite",
-            "extras": "all",
-        }
-        for version in ("pypy3.7", "pypy3.8")
-    )
-
-
 trial_postgres_tests = [
     {
         "python-version": "pypy3.9",
         "database": "postgres",
         "postgres-version": "14",
         "extras": "all",
-    }
+    },
+    {
+        "python-version": "pypy3.9",
+        "database": "postgres",
+        "postgres-version": "13",
+        "extras": "all",
+    },
 ]
-
-if not IS_PR:
-    trial_postgres_tests.extend(
-        {
-            "python-version": "pypy3.9",
-            "database": "postgres",
-            "postgres-version": version,
-            "extras": "all",
-        }
-        for version in ("10", "11", "12", "13")
-    )
 
 trial_no_extra_tests = [
     {
@@ -103,38 +84,15 @@ sytest_tests = [
         "postgres": "multi-postgres",
         "workers": "workers",
     },
+    {
+        "sytest-tag": "testing",
+    },
+    {
+        "sytest-tag": "testing",
+        "postgres": "postgres",
+        "workers": "workers",
+    },
 ]
-
-if not IS_PR:
-    sytest_tests.extend(
-        [
-            {
-                "sytest-tag": "testing",
-            },
-            {
-                "sytest-tag": "testing",
-                "postgres": "postgres",
-                "workers": "workers",
-            },
-            {
-                "sytest-tag": "buster",
-            },
-            {
-                "sytest-tag": "buster",
-                "postgres": "postgres",
-                "workers": "workers",
-            },
-            {
-                "sytest-tag": "focal",
-            },
-            {
-                "sytest-tag": "focal",
-                "postgres": "postgres",
-                "workers": "workers",
-            },
-        ]
-    )
-
 
 print("::group::Calculated sytest jobs")
 print(json.dumps(sytest_tests, indent=4))

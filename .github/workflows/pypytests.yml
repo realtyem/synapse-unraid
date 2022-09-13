@@ -124,10 +124,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: changes
     if: ${{ needs.changes.outputs.rust == 'true' }}
-
     steps:
       - uses: actions/checkout@v2
-
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
@@ -135,17 +133,14 @@ jobs:
             override: true
             components: clippy
       - uses: Swatinem/rust-cache@v2
-
       - run: cargo clippy
 
   lint-rustfmt:
     runs-on: ubuntu-latest
     needs: changes
     if: ${{ needs.changes.outputs.rust == 'true' }}
-
     steps:
       - uses: actions/checkout@v2
-
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
@@ -153,7 +148,6 @@ jobs:
             override: true
             components: rustfmt
       - uses: Swatinem/rust-cache@v2
-
       - run: cargo fmt --check
 
   # Dummy step to gate other tests on without repeating the whole list
@@ -296,7 +290,6 @@ jobs:
           -exec cat {} \;
           -exec echo "::endgroup::" \;
           || true
-
 
   mypy-latest-deps:
     runs-on: ubuntu-latest
