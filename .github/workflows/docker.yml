@@ -50,6 +50,7 @@ jobs:
             "gitsha1=${{ github.sha }}"
           tags: "${{ steps.set-tag.outputs.tags }}"
           file: "docker/Dockerfile-unified"
+          build-args: PYTHON_VERSION=3.10
           platforms: linux/amd64
 #          cache-from: type=gha
 #          cache-to: type=gha,mode=max
