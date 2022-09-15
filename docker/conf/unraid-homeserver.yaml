@@ -12,16 +12,12 @@
 # vim:ft=yaml
 
 ## TLS ##
-
 {% if not SYNAPSE_NO_TLS %}
-
 tls_certificate_path: "/data/{{ SYNAPSE_SERVER_NAME }}.tls.crt"
 tls_private_key_path: "/data/{{ SYNAPSE_SERVER_NAME }}.tls.key"
-
 {% endif %}
 
 ## Server ##
-
 server_name: "{{ SYNAPSE_SERVER_NAME }}"
 pid_file: /homeserver.pid
 web_client: False
@@ -29,11 +25,9 @@ soft_file_limit: 0
 log_config: "{{ SYNAPSE_LOG_CONFIG }}"
 
 ## Ports ##
-
 listeners:
   {% if not SYNAPSE_NO_TLS %}
-  -
-    port: 8448
+  - port: 8448
     bind_addresses: ['::']
     type: http
     tls: true
@@ -44,7 +38,6 @@ listeners:
       - names: [federation]  # Federation APIs
         compress: false
   {% endif %}
-
   # Allow configuring in case we want to reverse proxy 8008
   # using another process in the same container
   - port: {{ SYNAPSE_HTTP_PORT or 8008 }}
@@ -52,7 +45,6 @@ listeners:
     bind_addresses: ['::']
     type: http
     x_forwarded: false
-
     resources:
       - names: [client]
         compress: true
@@ -65,7 +57,6 @@ listeners:
 {% endif %}
 
 ## Database ##
-
 {% if POSTGRES_PASSWORD %}
 database:
   name: "psycopg2"
@@ -85,11 +76,9 @@ database:
 {% endif %}
 
 ## Performance ##
-
 event_cache_size: "{{ SYNAPSE_EVENT_CACHE_SIZE or "10K" }}"
 
 ## Ratelimiting ##
-
 rc_messages_per_second: 0.2
 rc_message_burst_count: 10.0
 federation_rc_window_size: 1000
@@ -99,7 +88,6 @@ federation_rc_reject_limit: 50
 federation_rc_concurrent: 3
 
 ## Files ##
-
 media_store_path: "/data/media"
 max_upload_size: "{{ SYNAPSE_MAX_UPLOAD_SIZE or "50M" }}"
 max_image_pixels: "32M"
@@ -122,12 +110,10 @@ thumbnail_sizes:
 - width: 800
   height: 600
   method: scale
-
 url_preview_enabled: False
 max_spider_size: "10M"
 
 ## Captcha ##
-
 {% if SYNAPSE_RECAPTCHA_PUBLIC_KEY %}
 recaptcha_public_key: "{{ SYNAPSE_RECAPTCHA_PUBLIC_KEY }}"
 recaptcha_private_key: "{{ SYNAPSE_RECAPTCHA_PRIVATE_KEY }}"
@@ -141,7 +127,6 @@ recaptcha_siteverify_api: "https://www.google.com/recaptcha/api/siteverify"
 {% endif %}
 
 ## Turn ##
-
 {% if SYNAPSE_TURN_URIS %}
 turn_uris:
 {% for uri in SYNAPSE_TURN_URIS.split(',') %}    - "{{ uri }}"
@@ -157,16 +142,13 @@ turn_allow_guests: True
 {% endif %}
 
 ## Registration ##
-
 enable_registration: {{ "True" if SYNAPSE_ENABLE_REGISTRATION else "False" }}
 registration_shared_secret: "{{ SYNAPSE_REGISTRATION_SHARED_SECRET }}"
 bcrypt_rounds: 12
 allow_guest_access: {{ "True" if SYNAPSE_ALLOW_GUEST else "False" }}
 enable_group_creation: true
 
-
 ## Metrics ###
-
 enable_metrics: {{ "True" if SYNAPSE_METRICS else "False" }}
 {% if SYNAPSE_REPORT_STATS.lower() == "yes" and SYNAPSE_METRICS %}
 report_stats: True
@@ -175,18 +157,15 @@ report_stats: False
 {% endif %}
 
 ## API Configuration ##
-
 {% if SYNAPSE_APPSERVICES %}
 app_service_config_files:
 {% for appservice in SYNAPSE_APPSERVICES %}    - "{{ appservice }}"
 {% endfor %}
 {% endif %}
-
 macaroon_secret_key: "{{ SYNAPSE_MACAROON_SECRET_KEY }}"
 expire_access_token: False
 
 ## Signing Keys ##
-
 signing_key_path: "/data/{{ SYNAPSE_SERVER_NAME }}.signing.key"
 old_signing_keys: {}
 key_refresh_interval: "1d" # 1 Day.
