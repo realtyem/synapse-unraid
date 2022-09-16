@@ -169,13 +169,13 @@ app_service_config_files:
 {% for appservice in SYNAPSE_APPSERVICES %}    - "{{ appservice }}"
 {% endfor %}
 {% endif %}
-macaroon_secret_key: "{{ SYNAPSE_MACAROON_SECRET_KEY }}"
-expire_access_token: False
 
-## Signing Keys ##
+## Signing Keys and other secrets ##
 signing_key_path: "/data/{{ SYNAPSE_SERVER_NAME }}.signing.key"
 old_signing_keys: {}
 key_refresh_interval: "1d" # 1 Day.
+macaroon_secret_key: "{{ SYNAPSE_MACAROON_SECRET_KEY }}"
+expire_access_token: False
 
 # The trusted servers to download signing keys from.
 trusted_key_servers:
