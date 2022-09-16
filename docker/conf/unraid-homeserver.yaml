@@ -20,6 +20,7 @@ log_config: "{{ SYNAPSE_LOG_CONFIG }}"
 default_identity_server: {{ SYNAPSE_DEFAULT_IDENTITY_SERVER or "https://matrix.org" }}
 # this keeps a pointless warning from appearing in the logs.
 suppress_key_server_warning: true
+serve_server_wellknown: {{ SYNAPSE_SERVE_SERVER_WELLKNOWN }}
 
 ## Ports ##
 listeners:
@@ -144,10 +145,10 @@ turn_user_lifetime: "1h"
 turn_allow_guests: True
 {% endif %}
 ## Registration ##
-enable_registration: {{ "True" if SYNAPSE_ENABLE_REGISTRATION else "False" }}
+enable_registration: {{ SYNAPSE_ENABLE_REGISTRATION }}
 registration_shared_secret: "{{ SYNAPSE_REGISTRATION_SHARED_SECRET }}"
 bcrypt_rounds: 12
-allow_guest_access: {{ "True" if SYNAPSE_ALLOW_GUEST else "False" }}
+allow_guest_access: {{ SYNAPSE_ALLOW_GUEST }}
 enable_group_creation: true
 ## Metrics ###
 enable_metrics: {{ SYNAPSE_METRICS}}
@@ -189,7 +190,7 @@ trusted_key_servers:
 password_config:
    enabled: true
 
-{% if SYNAPSE_URL_PREVIEW_ENABLED.lower() == "true" %}
+{% if SYNAPSE_URL_PREVIEW_ENABLED == "True" %}
 max_spider_size: "10M"
 url_preview_enabled: True
 url_preview_ip_range_blacklist:

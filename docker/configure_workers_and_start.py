@@ -776,7 +776,10 @@ def main(args: List[str], environ: MutableMapping[str, str]) -> None:
 
     # Sanitize the environment to keep a bunch of junk out of the jinja templates
     environ["SYNAPSE_METRICS"] = str(getenv_bool("SYNAPSE_METRICS", False))
-
+    environ["SYNAPSE_ENABLE_REGISTRATION"] = str(getenv_bool("SYNAPSE_ENABLE_REGISTRATION", False))
+    environ["SYNAPSE_ALLOW_GUEST"] = str(getenv_bool("SYNAPSE_ALLOW_GUEST", False))
+    environ["SYNAPSE_URL_PREVIEW_ENABLED"] = str(getenv_bool("SYNAPSE_URL_PREVIEW_ENABLED", False))
+    environ["SYNAPSE_SERVE_SERVER_WELLKNOWN"] = str(getenv_bool("SYNAPSE_SERVE_SERVER_WELLKNOWN", False))
     # Generate the base homeserver config if one does not yet exist
     if not os.path.exists(config_path):
         log("Generating base homeserver config")
