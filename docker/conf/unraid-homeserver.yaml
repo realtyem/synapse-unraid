@@ -46,7 +46,7 @@ listeners:
         compress: true
       - names: [federation]
         compress: true
-{% if SYNAPSE_METRICS %}
+{% if SYNAPSE_METRICS is "True" %}
   - port: {{ SYNAPSE_METRICS_HTTP_PORT or 8060}}
     bind_address: '0.0.0.0'
     type: metrics
@@ -150,7 +150,7 @@ bcrypt_rounds: 12
 allow_guest_access: {{ "True" if SYNAPSE_ALLOW_GUEST else "False" }}
 enable_group_creation: true
 ## Metrics ###
-enable_metrics: {{ "True" if SYNAPSE_METRICS else "False" }}
+enable_metrics: {{ SYNAPSE_METRICS}}
 {% if SYNAPSE_METRICS == "True" %}
 # If you are connected to a room on one of these servers, this allows collection of
 # federation metrics from your connection with them
@@ -160,7 +160,7 @@ federation_metrics_domains:
   - libera.chat
   - mozilla.org
 {% endif %}
-{% if SYNAPSE_REPORT_STATS.lower() == "yes" and SYNAPSE_METRICS %}
+{% if SYNAPSE_REPORT_STATS.lower() == "yes" and SYNAPSE_METRICS == "True" %}
 report_stats: True
 {% else %}
 report_stats: False
