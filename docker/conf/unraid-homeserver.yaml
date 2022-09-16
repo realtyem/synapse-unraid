@@ -127,8 +127,6 @@ thumbnail_sizes:
 - width: 800
   height: 600
   method: scale
-url_preview_enabled: False
-max_spider_size: "10M"
 {% if SYNAPSE_RECAPTCHA_PUBLIC_KEY %}
 ## Captcha ##
 recaptcha_public_key: "{{ SYNAPSE_RECAPTCHA_PUBLIC_KEY }}"
@@ -191,7 +189,9 @@ trusted_key_servers:
 password_config:
    enabled: true
 
-# Whitelisting and blacklisting
+{% if SYNAPSE_URL_PREVIEW_ENABLED.lower() == "true" %}
+max_spider_size: "10M"
+url_preview_enabled: True
 url_preview_ip_range_blacklist:
   - '127.0.0.0/8'
   - '10.0.0.0/8'
@@ -212,3 +212,6 @@ url_preview_ip_range_blacklist:
   - '2001:db8::/32'
   - 'ff00::/8'
   - 'fec0::/10'
+{% else %}
+url_preview_enabled: False
+{% endif %}
