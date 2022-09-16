@@ -17,6 +17,7 @@ pid_file: /homeserver.pid
 web_client: False
 soft_file_limit: 0
 log_config: "{{ SYNAPSE_LOG_CONFIG }}"
+default_identity_server: {{ SYNAPSE_DEFAULT_IDENTITY_SERVER or "https://matrix.org" }}
 # this keeps a pointless warning from appearing in the logs.
 suppress_key_server_warning: true
 
