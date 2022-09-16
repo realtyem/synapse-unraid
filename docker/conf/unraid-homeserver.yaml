@@ -33,14 +33,14 @@ listeners:
       - names: [client]
         compress: true
       - names: [federation]  # Federation APIs
-        compress: false
+        compress: true
 {% endif %}
 # This gets set by the configure_workers_and_start script to use the reverse proxy
   - port: {{ SYNAPSE_HTTP_PORT or 8008 }}
     tls: false
     bind_addresses: ['0.0.0.0']
     type: http
-    x_forwarded: false
+    x_forwarded: true
     resources:
       - names: [client]
         compress: true
