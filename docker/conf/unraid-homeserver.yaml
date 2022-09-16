@@ -17,6 +17,8 @@ pid_file: /homeserver.pid
 web_client: False
 soft_file_limit: 0
 log_config: "{{ SYNAPSE_LOG_CONFIG }}"
+# this keeps a pointless warning from appearing in the logs.
+suppress_key_server_warning: true
 
 ## Ports ##
 listeners:
@@ -43,7 +45,7 @@ listeners:
       - names: [client]
         compress: true
       - names: [federation]
-        compress: false
+        compress: true
 {% if SYNAPSE_METRICS %}
   - port: {{ SYNAPSE_METRICS_HTTP_PORT or 8060}}
     bind_address: '0.0.0.0'
@@ -75,6 +77,20 @@ database:
   name: "sqlite3"
   args:
     database: "/data/homeserver.db"
+{% endif %}
+
+## Email sending
+{% if SYNAPSE_EMAIL %}
+email:
+  smtp_host: "{{ SYNAPSE_EMAIL_SMTP_HOST }}"
+  smtp_port: "{{ SYNAPSE_EMAIL_SMTP_PORT or "25" }}"
+  smtp_user: "{{ SYNAPSE_EMAIL_SMTP_USER }}"
+  smtp_pass: "{{ SYNAPSE_EMAIL_SMTP_PASS }}"
+  require_transport_security: true
+  enable_tls: true
+  notif_from: "Synapse homeserver"
+  app_name: "Synapse-Matrix"
+  enable_notifs: true
 {% endif %}
 
 ## Performance ##
