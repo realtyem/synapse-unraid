@@ -23,7 +23,7 @@ suppress_key_server_warning: true
 
 ## Ports ##
 listeners:
-  {% if not SYNAPSE_NO_TLS %}
+{% if not SYNAPSE_NO_TLS %}
   - port: 8448
     bind_addresses: ['::']
     type: http
@@ -34,9 +34,8 @@ listeners:
         compress: true
       - names: [federation]  # Federation APIs
         compress: false
-  {% endif %}
-  # Allow configuring in case we want to reverse proxy 8008
-  # using another process in the same container
+{% endif %}
+# This gets set by the configure_workers_and_start script to use the reverse proxy
   - port: {{ SYNAPSE_HTTP_PORT or 8008 }}
     tls: false
     bind_addresses: ['::']
@@ -94,7 +93,7 @@ email:
 ## Performance ##
 event_cache_size: "{{ SYNAPSE_EVENT_CACHE_SIZE or "10K" }}"
 caches:
-  global_factor: "{{ SYNAPSE_CACHES_GLOBAL_FACTOR or "0.5" }}"
+  global_factor: {{ SYNAPSE_CACHES_GLOBAL_FACTOR or 0.5 }}
 
 ## Ratelimiting ##
 rc_messages_per_second: 0.2
