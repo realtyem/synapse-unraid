@@ -54,13 +54,12 @@ listeners:
     resources:
       - compress: true
 {% endif %}
-
-## TLS ##
 {% if not SYNAPSE_NO_TLS %}
+## TLS ##
+# This is kept in for backward compatibility with the CI testing suite
 tls_certificate_path: "/data/{{ SYNAPSE_SERVER_NAME }}.tls.crt"
 tls_private_key_path: "/data/{{ SYNAPSE_SERVER_NAME }}.tls.key"
 {% endif %}
-
 ## Database ##
 {% if POSTGRES_PASSWORD %}
 database:
@@ -79,9 +78,8 @@ database:
   args:
     database: "/data/homeserver.db"
 {% endif %}
-
-## Email sending
 {% if SYNAPSE_EMAIL %}
+## Email sending
 email:
   smtp_host: "{{ SYNAPSE_EMAIL_SMTP_HOST }}"
   smtp_port: "{{ SYNAPSE_EMAIL_SMTP_PORT or "25" }}"
@@ -93,9 +91,10 @@ email:
   app_name: "Synapse-Matrix"
   enable_notifs: true
 {% endif %}
-
 ## Performance ##
 event_cache_size: "{{ SYNAPSE_EVENT_CACHE_SIZE or "10K" }}"
+caches:
+  global_factor: "{{ SYNAPSE_CACHES_GLOBAL_FACTOR or "0.5" }}"
 
 ## Ratelimiting ##
 rc_messages_per_second: 0.2
@@ -131,42 +130,28 @@ thumbnail_sizes:
   method: scale
 url_preview_enabled: False
 max_spider_size: "10M"
-
-## Captcha ##
 {% if SYNAPSE_RECAPTCHA_PUBLIC_KEY %}
+## Captcha ##
 recaptcha_public_key: "{{ SYNAPSE_RECAPTCHA_PUBLIC_KEY }}"
 recaptcha_private_key: "{{ SYNAPSE_RECAPTCHA_PRIVATE_KEY }}"
 enable_registration_captcha: True
 recaptcha_siteverify_api: "https://www.google.com/recaptcha/api/siteverify"
-{% else %}
-recaptcha_public_key: "YOUR_PUBLIC_KEY"
-recaptcha_private_key: "YOUR_PRIVATE_KEY"
-enable_registration_captcha: False
-recaptcha_siteverify_api: "https://www.google.com/recaptcha/api/siteverify"
 {% endif %}
-
-## Turn ##
 {% if SYNAPSE_TURN_URIS %}
+## Turn ##
 turn_uris:
 {% for uri in SYNAPSE_TURN_URIS.split(',') %}    - "{{ uri }}"
 {% endfor %}
 turn_shared_secret: "{{ SYNAPSE_TURN_SECRET }}"
 turn_user_lifetime: "1h"
 turn_allow_guests: True
-{% else %}
-turn_uris: []
-turn_shared_secret: "YOUR_SHARED_SECRET"
-turn_user_lifetime: "1h"
-turn_allow_guests: True
 {% endif %}
-
 ## Registration ##
 enable_registration: {{ "True" if SYNAPSE_ENABLE_REGISTRATION else "False" }}
 registration_shared_secret: "{{ SYNAPSE_REGISTRATION_SHARED_SECRET }}"
 bcrypt_rounds: 12
 allow_guest_access: {{ "True" if SYNAPSE_ALLOW_GUEST else "False" }}
 enable_group_creation: true
-
 ## Metrics ###
 enable_metrics: {{ "True" if SYNAPSE_METRICS else "False" }}
 {% if SYNAPSE_REPORT_STATS.lower() == "yes" and SYNAPSE_METRICS %}
@@ -179,7 +164,6 @@ federation_metrics_domains:
   - gitter.im
   - libera.chat
   - mozilla.org
-
 ## API Configuration ##
 {% if SYNAPSE_APPSERVICES %}
 app_service_config_files:
@@ -199,7 +183,6 @@ trusted_key_servers:
   - server_name: matrix.org
     verify_keys:
       "ed25519:auto": "Noi6WqcDj0QmPxCNQqgezwTlBKrfqehY1u2FyWP9uYw"
-
 password_config:
    enabled: true
 
