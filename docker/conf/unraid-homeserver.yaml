@@ -176,7 +176,9 @@ old_signing_keys: {}
 key_refresh_interval: "1d" # 1 Day.
 macaroon_secret_key: "{{ SYNAPSE_MACAROON_SECRET_KEY }}"
 expire_access_token: False
-
+{% if SYNAPSE_FORM_SECRET %}
+form_secret: {{ SYNAPSE_FORM_SECRET }}
+{% endif %}
 # The trusted servers to download signing keys from.
 trusted_key_servers:
   - server_name: matrix.org
