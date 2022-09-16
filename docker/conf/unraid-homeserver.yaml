@@ -153,16 +153,20 @@ allow_guest_access: {{ "True" if SYNAPSE_ALLOW_GUEST else "False" }}
 enable_group_creation: true
 ## Metrics ###
 enable_metrics: {{ "True" if SYNAPSE_METRICS else "False" }}
-{% if SYNAPSE_REPORT_STATS.lower() == "yes" and SYNAPSE_METRICS %}
-report_stats: True
-{% else %}
-report_stats: False
-{% endif %}
+{% if SYNAPSE_METRICS == "True" %}
+# If you are connected to a room on one of these servers, this allows collection of
+# federation metrics from your connection with them
 federation_metrics_domains:
   - matrix.org
   - gitter.im
   - libera.chat
   - mozilla.org
+{% endif %}
+{% if SYNAPSE_REPORT_STATS.lower() == "yes" and SYNAPSE_METRICS %}
+report_stats: True
+{% else %}
+report_stats: False
+{% endif %}
 ## API Configuration ##
 {% if SYNAPSE_APPSERVICES %}
 app_service_config_files:
