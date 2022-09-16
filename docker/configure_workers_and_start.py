@@ -776,6 +776,7 @@ def main(args: List[str], environ: MutableMapping[str, str]) -> None:
 
     # Sanitize the environment to keep a bunch of junk out of the jinja templates
     environ["SYNAPSE_METRICS"] = str(getenv_bool("SYNAPSE_METRICS", False))
+
     # Generate the base homeserver config if one does not yet exist
     if not os.path.exists(config_path):
         log("Generating base homeserver config")
