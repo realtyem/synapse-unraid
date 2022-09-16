@@ -78,7 +78,7 @@ database:
   args:
     database: "/data/homeserver.db"
 {% endif %}
-{% if SYNAPSE_EMAIL %}
+{% if SYNAPSE_EMAIL == "True" %}
 ## Email sending
 email:
   smtp_host: "{{ SYNAPSE_EMAIL_SMTP_HOST }}"
