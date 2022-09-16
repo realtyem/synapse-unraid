@@ -11,12 +11,6 @@
 # https://matrix-org.github.io/synapse/latest/usage/configuration/config_documentation.html
 # vim:ft=yaml
 
-## TLS ##
-{% if not SYNAPSE_NO_TLS %}
-tls_certificate_path: "/data/{{ SYNAPSE_SERVER_NAME }}.tls.crt"
-tls_private_key_path: "/data/{{ SYNAPSE_SERVER_NAME }}.tls.key"
-{% endif %}
-
 ## Server ##
 server_name: "{{ SYNAPSE_SERVER_NAME }}"
 pid_file: /homeserver.pid
@@ -54,6 +48,14 @@ listeners:
   - port: {{ SYNAPSE_METRICS_HTTP_PORT or 8060}}
     bind_address: '0.0.0.0'
     type: metrics
+    resources:
+      - compress: true
+{% endif %}
+
+## TLS ##
+{% if not SYNAPSE_NO_TLS %}
+tls_certificate_path: "/data/{{ SYNAPSE_SERVER_NAME }}.tls.crt"
+tls_private_key_path: "/data/{{ SYNAPSE_SERVER_NAME }}.tls.key"
 {% endif %}
 
 ## Database ##
@@ -88,7 +90,7 @@ federation_rc_reject_limit: 50
 federation_rc_concurrent: 3
 
 ## Files ##
-media_store_path: "/data/media"
+media_store_path: "/data/media" "{{ SYNAPSE_MEDIA_STORE_PATH or '/data/media_store' }}"
 max_upload_size: "{{ SYNAPSE_MAX_UPLOAD_SIZE or "50M" }}"
 max_image_pixels: "32M"
 dynamic_thumbnails: false
@@ -155,6 +157,11 @@ report_stats: True
 {% else %}
 report_stats: False
 {% endif %}
+federation_metrics_domains:
+  - matrix.org
+  - gitter.im
+  - libera.chat
+  - mozilla.org
 
 ## API Configuration ##
 {% if SYNAPSE_APPSERVICES %}
@@ -178,3 +185,25 @@ trusted_key_servers:
 
 password_config:
    enabled: true
+
+# Whitelisting and blacklisting
+url_preview_ip_range_blacklist:
+  - '127.0.0.0/8'
+  - '10.0.0.0/8'
+  - '172.16.0.0/12'
+  - '192.168.0.0/16'
+  - '100.64.0.0/10'
+  - '192.0.0.0/24'
+  - '169.254.0.0/16'
+  - '192.88.99.0/24'
+  - '198.18.0.0/15'
+  - '192.0.2.0/24'
+  - '198.51.100.0/24'
+  - '203.0.113.0/24'
+  - '224.0.0.0/4'
+  - '::1/128'
+  - 'fe80::/10'
+  - 'fc00::/7'
+  - '2001:db8::/32'
+  - 'ff00::/8'
+  - 'fec0::/10'
