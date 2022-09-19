@@ -787,7 +787,7 @@ def main(args: List[str], environ: MutableMapping[str, str]) -> None:
         getenv_bool("SYNAPSE_SERVE_SERVER_WELLKNOWN", False)
     )
     environ["SYNAPSE_EMAIL"] = str(getenv_bool("SYNAPSE_EMAIL", False))
-    
+
     # Generate the base homeserver config if one does not yet exist
     if not os.path.exists(config_path):
         log("Generating base homeserver config")
