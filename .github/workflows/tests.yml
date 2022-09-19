@@ -90,6 +90,7 @@ jobs:
       - uses: matrix-org/setup-python-poetry@dmr/try-newer-actions
         with:
           extras: "all"
+      - run: poetry update --only main
       - run: poetry run scripts-dev/check_pydantic_models.py
 
   lint-clippy:
