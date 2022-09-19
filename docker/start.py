@@ -106,7 +106,7 @@ def generate_config_from_template(
         environ["SYNAPSE_LOG_CONFIG"] = config_dir + "/log.config"
 
     log("Generating synapse config file " + config_path)
-    convert("/conf/homeserver.yaml", config_path, environ)
+    convert("/conf/unraid-homeserver.yaml", config_path, environ)
 
     log_config_file = environ["SYNAPSE_LOG_CONFIG"]
     log("Generating log config file " + log_config_file)
