@@ -39,7 +39,7 @@ jobs:
         with:
           python-version: '3.10'
           extras: "all"
-      - run: poetry update --no-dev
+      - run: poetry update --only main
       - run: poetry run scripts-dev/generate_sample_config.sh --check
       - run: poetry run scripts-dev/config-lint.sh
 
