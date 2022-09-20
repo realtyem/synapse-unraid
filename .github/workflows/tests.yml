@@ -52,13 +52,14 @@ jobs:
 #          python-version: '${{ needs.pre-run.outputs.python-version }}'
       - run: sudo apt install -y libsystemd-dev
 
-      - uses: "realtyem/synapse-tools/.github/workflows/setup-python-and-poetry.yml@main"
+      - uses: "realtyem/setup-python-poetry@develop"
         id: setup-python-poetry
         with:
           python-version: "3.10"
           poetry-version: "1.2.0"
           extras: "all"
-          latest-deps: True
+          latest-deps: true
+          no-install: true
 
       - name: Install project with --extras=${{ steps.setup-python-poetry.with.extras }}
         run: poetry install --no-interaction --all-extras
