@@ -95,12 +95,13 @@ jobs:
       - run: poetry run scripts-dev/config-lint.sh
 
   check-schema-delta:
-    runs-on: ubuntu-latest
+    needs: pre-run
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '${{ needs.pre-run.outputs.python-version }}'
       - run: "pip install 'click==8.1.1' 'GitPython>=3.1.20'"
       - run: scripts-dev/check_schema_delta.py --force-colors
 
@@ -110,7 +111,7 @@ jobs:
       typechecking-extras: "all"
 
   lint-crlf:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
       - name: Check line endings
@@ -118,7 +119,8 @@ jobs:
 
   lint-newsfile:
     if: ${{ github.base_ref == 'develop' }}
-    runs-on: ubuntu-latest
+    needs: pre-run
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
         with:
@@ -126,14 +128,15 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '${{ needs.pre-run.outputs.python-version }}'
       - run: "pip install 'towncrier>=18.6.0rc1'"
       - run: scripts-dev/check-newsfragment.sh
         env:
           PULL_REQUEST_NUMBER: ${{ github.event.number }}
 
   lint-pydantic:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
+    needs: pre-run
     steps:
       - uses: actions/checkout@v3
         with:
@@ -145,7 +148,7 @@ jobs:
       - run: poetry run scripts-dev/check_pydantic_models.py
 
   lint-clippy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: changes
     if: ${{ needs.changes.outputs.rust == 'true' }}
 
@@ -163,7 +166,7 @@ jobs:
       - run: cargo clippy
 
   lint-rustfmt:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: changes
     if: ${{ needs.changes.outputs.rust == 'true' }}
 
@@ -192,14 +195,14 @@ jobs:
       - check-schema-delta
       - lint-clippy
       - lint-rustfmt
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - run: "true"
 
   calculate-test-jobs:
     if: ${{ !cancelled() && !failure() }} # Allow previous steps to be skipped, but not fail
     needs: linting-done
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -214,7 +217,7 @@ jobs:
   trial:
     if: ${{ !cancelled() && !failure() }} # Allow previous steps to be skipped, but not fail
     needs: calculate-test-jobs
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         job: ${{ fromJson(needs.calculate-test-jobs.outputs.trial_test_matrix) }}
@@ -356,7 +359,7 @@ jobs:
   sytest:
     if: ${{ !failure() && !cancelled() }}
     needs: calculate-test-jobs
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     container:
       image: matrixdotorg/sytest-synapse:${{ matrix.job.sytest-tag }}
       volumes:
@@ -404,7 +407,7 @@ jobs:
   export-data:
     if: ${{ !failure() && !cancelled() }} # Allow previous steps to be skipped, but not fail
     needs: [linting-done, portdb]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     env:
       TOP: ${{ github.workspace }}
 
@@ -439,7 +442,7 @@ jobs:
   portdb:
     if: ${{ !failure() && !cancelled() }} # Allow previous steps to be skipped, but not fail
     needs: linting-done
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       matrix:
         include:
@@ -490,7 +493,7 @@ jobs:
   complement:
     if: "${{ !failure() && !cancelled() }}"
     needs: linting-done
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     strategy:
       fail-fast: false
@@ -529,7 +532,7 @@ jobs:
 
   cargo-test:
     if: ${{ needs.changes.outputs.rust == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs:
       - linting-done
       - changes
@@ -557,7 +560,7 @@ jobs:
       - portdb
       - complement
       - cargo-test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: matrix-org/done-action@v2
         with:
