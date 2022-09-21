@@ -409,9 +409,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: sudo apt-get -qq install xmlsec1 postgresql-client
-      - uses: matrix-org/setup-python-poetry@dmr/try-newer-actions
+      - uses: realtyem/setup-python-poetry@develop
         with:
+          python-version: "3.10"
           extras: "postgres"
+          latest-deps: true
       - run: .ci/scripts/test_export_data_command.sh
         env:
           PGHOST: localhost
