@@ -117,9 +117,9 @@ jobs:
           poetry-version: "1.2.0"
           extras: "all"
           latest-deps: true
-          no-install: true
+          no-install: false
 
-      - run: poetry update --only main
+#      - run: poetry update --only main
       - run: poetry run scripts-dev/check_pydantic_models.py
 
   lint-clippy:
