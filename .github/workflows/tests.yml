@@ -57,8 +57,8 @@ jobs:
           latest-deps: true
           no-install: true
 
-      - name: Install project with --extras="${{ steps.setup-python-poetry.inputs.extras }}"
-        run: poetry install --no-interaction --all-extras
+      - name: Install project with --extras=${{ steps.setup-python-poetry.outputs.extras }}
+        run: poetry install --no-interaction --extras=${{ steps.setup-python-poetry.outputs.extras }}
         shell: bash
 
       - run: poetry run scripts-dev/generate_sample_config.sh --check
@@ -111,7 +111,6 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
       - uses: "realtyem/setup-python-poetry@develop"
-        id: setup-python-poetry
         with:
           python-version: "3.10"
           poetry-version: "1.2.0"
@@ -206,10 +205,13 @@ jobs:
             -e POSTGRES_PASSWORD=postgres \
             -e POSTGRES_INITDB_ARGS="--lc-collate C --lc-ctype C --encoding UTF8" \
             postgres:${{ matrix.job.postgres-version }}
-      - uses: matrix-org/setup-python-poetry@dmr/try-newer-actions
+      - uses: "realtyem/setup-python-poetry@develop"
         with:
           python-version: ${{ matrix.job.python-version }}
+          poetry-version: "1.2.0"
           extras: ${{ matrix.job.extras }}
+          latest-deps: true
+          no-install: false
       - name: Await PostgreSQL
         if: ${{ matrix.job.postgres-version }}
         timeout-minutes: 2
