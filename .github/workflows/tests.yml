@@ -452,10 +452,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: sudo apt-get -qq install xmlsec1 postgresql-client
-      - uses: matrix-org/setup-python-poetry@dmr/try-newer-actions
+      - uses: realtyem/setup-python-poetry@develop
         with:
           python-version: ${{ matrix.python-version }}
           extras: "postgres"
+          latest-deps: true
       - run: .ci/scripts/test_synapse_port_db.sh
         id: run_tester_script
         env:
