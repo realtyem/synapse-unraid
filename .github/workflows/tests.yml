@@ -106,7 +106,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-            toolchain: 1.61.0
+            toolchain: 1.58.1
             override: true
             components: clippy
       - uses: Swatinem/rust-cache@v2
@@ -124,7 +124,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-            toolchain: 1.61.0
+            toolchain: 1.58.1
             override: true
             components: rustfmt
       - uses: Swatinem/rust-cache@v2
@@ -217,7 +217,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-            toolchain: 1.61.0
+            toolchain: 1.58.1
             override: true
       - uses: Swatinem/rust-cache@v2
 
@@ -332,7 +332,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-            toolchain: 1.61.0
+            toolchain: 1.58.1
             override: true
       - uses: Swatinem/rust-cache@v2
 #      - name: Ensure sytest runs `pip install`
@@ -468,7 +468,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-            toolchain: 1.61.0
+            toolchain: 1.58.1
             override: true
       - uses: Swatinem/rust-cache@v2
 
@@ -494,7 +494,7 @@ jobs:
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
-            toolchain: 1.61.0
+            toolchain: 1.58.1
             override: true
       - uses: Swatinem/rust-cache@v2
 
