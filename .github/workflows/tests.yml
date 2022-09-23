@@ -397,7 +397,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - python-version: "3.7"
+          - python-version: "3.10"
             postgres-version: "10"
 
           - python-version: "3.10"
@@ -506,7 +506,7 @@ jobs:
     needs:
       - trial
       - trial-olddeps
-#      - sytest
+      - sytest
       - export-data
       - portdb
       - complement

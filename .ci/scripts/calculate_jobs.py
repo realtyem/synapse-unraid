@@ -86,19 +86,21 @@ print(f"::set-output name=trial_test_matrix::{test_matrix}")
 
 # First calculate the various sytest jobs.
 #
-# For each type of test we only run on focal on PRs
+# Only run debian variants on PRs, for unraid_develop run more options. Bullseye isn't
+# available, so run newer stuff only as the docker image will be bullseye or newer,
+# except focal.
 
 
 sytest_tests = [
     {
-        "sytest-tag": "focal",
+        "sytest-tag": "bookworm-python3.10",
     },
     {
-        "sytest-tag": "focal",
+        "sytest-tag": "bookworm-python3.10",
         "postgres": "postgres",
     },
     {
-        "sytest-tag": "focal",
+        "sytest-tag": "bookworm-python3.10",
         "postgres": "multi-postgres",
         "workers": "workers",
     },
@@ -108,12 +110,12 @@ if not IS_PR:
     sytest_tests.extend(
         [
             {
-                "sytest-tag": "testing",
+                "sytest-tag": "focal",
                 "postgres": "postgres",
             },
             {
-                "sytest-tag": "buster",
-                "postgres": "multi-postgres",
+                "sytest-tag": "focal",
+                "postgres": "postgres",
                 "workers": "workers",
             },
         ]
