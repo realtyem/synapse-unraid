@@ -75,3 +75,16 @@ stdout_logfile =/dev/stdout
 stdout_logfile_maxbytes=0
 stderr_logfile=/dev/stderr
 stderr_logfile_maxbytes=0
+
+[program:coturn]
+priority = 500
+command = /usr/local/bin/prefix-log /usr/bin/coturn -c /data/turnserver.conf
+autorestart = unexpected
+autostart=false
+# Switch these when ready
+# autostart={{ enable_coturn }}
+username=turnserver
+stdout_logfile =/dev/stdout
+stdout_logfile_maxbytes=0
+stderr_logfile=/dev/stderr
+stderr_logfile_maxbytes=0
