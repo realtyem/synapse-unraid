@@ -38,6 +38,7 @@
 # in the project's README), this script may be run multiple times, and functionality should
 # continue to work if so.
 
+import codecs
 import os
 import shutil
 import subprocess
@@ -51,6 +52,7 @@ from jinja2 import Environment, FileSystemLoader
 MAIN_PROCESS_HTTP_LISTENER_PORT = 8080
 MAIN_PROCESS_HTTP_METRICS_LISTENER_PORT = 8060
 enable_compressor = False
+enable_coturn = False
 enable_prometheus = False
 enable_redis_exporter = False
 enable_postgres_exporter = False
@@ -753,6 +755,7 @@ def main(args: List[str], environ: MutableMapping[str, str]) -> None:
     data_dir = environ.get("SYNAPSE_DATA_DIR", "/data")
     # Enable add-ons from environment string
     global enable_compressor
+    global enable_coturn
     global enable_prometheus
     global enable_redis_exporter
     global enable_postgres_exporter
@@ -760,6 +763,7 @@ def main(args: List[str], environ: MutableMapping[str, str]) -> None:
         getenv_bool("SYNAPSE_ENABLE_COMPRESSOR", False)
         and "POSTGRES_PASSWORD" in environ
     )
+    enable_coturn = getenv_bool("SYNAPSE_ENABLE_BUILTIN_COTURN", False)
     enable_prometheus = getenv_bool("SYNAPSE_METRICS", False)
     enable_redis_exporter = (
         getenv_bool("SYNAPSE_ENABLE_REDIS_METRIC_EXPORT", False)
@@ -787,6 +791,29 @@ def main(args: List[str], environ: MutableMapping[str, str]) -> None:
         getenv_bool("SYNAPSE_SERVE_SERVER_WELLKNOWN", False)
     )
     environ["SYNAPSE_EMAIL"] = str(getenv_bool("SYNAPSE_EMAIL", False))
+    if enable_coturn is True:
+        if "SYNAPSE_TURN_SECRET" not in environ:
+            # lifted right from start.py, because it works great.
+            filename = "/data/turn_secret.key"
+
+            # if the file already exists, load in the existing value; otherwise,
+            # generate a new secret and write it to a file
+
+            if os.path.exists(filename):
+                log("Reading %s from %s" % ("SYNAPSE_TURN_SECRET", filename))
+                with open(filename) as handle:
+                    value = handle.read()
+            else:
+                log("Generating a random secret for SYNAPSE_TURN_SECRET")
+                value = codecs.encode(os.urandom(32), "hex").decode()
+                with open(filename, "w") as handle:
+                    handle.write(value)
+            environ["SYNAPSE_TURN_SECRET"] = value
+
+        if "SYNAPSE_TURN_URIS" not in environ:
+            log("Make sure you setup port forwarding for port 3478")
+            value = "turn:%s:3478?transport=udp,turn:%s:3478?transport=tcp" % (environ["SYNAPSE_SERVER_NAME"], environ["SYNAPSE_SERVER_NAME"])
+            environ["SYNAPSE_TURN_URIS"] = value
 
     # Generate the base homeserver config if one does not yet exist
     if not os.path.exists(config_path):
