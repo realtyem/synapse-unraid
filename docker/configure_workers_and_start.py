@@ -812,7 +812,10 @@ def main(args: List[str], environ: MutableMapping[str, str]) -> None:
 
         if "SYNAPSE_TURN_URIS" not in environ:
             log("Make sure you setup port forwarding for port 3478")
-            value = "turn:%s:3478?transport=udp,turn:%s:3478?transport=tcp" % (environ["SYNAPSE_SERVER_NAME"], environ["SYNAPSE_SERVER_NAME"])
+            value = "turn:%s:3478?transport=udp,turn:%s:3478?transport=tcp" % (
+                environ["SYNAPSE_SERVER_NAME"],
+                environ["SYNAPSE_SERVER_NAME"],
+            )
             environ["SYNAPSE_TURN_URIS"] = value
 
     # Generate the base homeserver config if one does not yet exist
