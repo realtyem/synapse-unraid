@@ -820,7 +820,7 @@ def main(args: List[str], environ: MutableMapping[str, str]) -> None:
             environ["SYNAPSE_TURN_URIS"] = value
 
         if "COTURN_EXTERNAL_IP" not in environ:
-            value = urllib.request.urlopen('https://v4.ident.me').read().decode('utf8')
+            value = urllib.request.urlopen("https://v4.ident.me").read().decode("utf8")
             environ["COTURN_EXTERNAL_IP"] = value
 
         if "COTURN_MIN_PORT" not in environ:
@@ -888,7 +888,6 @@ def main(args: List[str], environ: MutableMapping[str, str]) -> None:
                 min_port=environ["COTURN_MIN_PORT"],
                 max_port=environ["COTURN_MAX_PORT"],
                 external_ip=environ["COTURN_EXTERNAL_IP"],
-
             )
         # Always regenerate all other config files
         generate_worker_files(environ, config_path, data_dir)
