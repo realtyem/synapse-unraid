@@ -43,6 +43,7 @@ import os
 import shutil
 import subprocess
 import sys
+import urllib.request
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, MutableMapping, NoReturn, Optional, Set
 
@@ -818,6 +819,18 @@ def main(args: List[str], environ: MutableMapping[str, str]) -> None:
             )
             environ["SYNAPSE_TURN_URIS"] = value
 
+        if "COTURN_EXTERNAL_IP" not in environ:
+            value = urllib.request.urlopen('https://v4.ident.me').read().decode('utf8')
+            environ["COTURN_EXTERNAL_IP"] = value
+
+        if "COTURN_MIN_PORT" not in environ:
+            value = "49152"
+            environ["COTURN_MIN_PORT"] = value
+
+        if "COTURN_MAX_PORT" not in environ:
+            value = "49172"
+            environ["COTURN_MAX_PORT"] = value
+
     # Generate the base homeserver config if one does not yet exist
     if not os.path.exists(config_path):
         log("Generating base homeserver config")
@@ -866,6 +879,17 @@ def main(args: List[str], environ: MutableMapping[str, str]) -> None:
                 ["chmod", "0755", "/conf/run_pg_exporter.sh"], stdout=subprocess.PIPE
             ).stdout.decode("utf-8")
 
+        if enable_coturn is True:
+            convert(
+                "/conf/turnserver.conf.j2",
+                "/data/turnserver.conf",
+                server_name=environ["SYNAPSE_SERVER_NAME"],
+                coturn_secret=environ["SYNAPSE_TURN_SECRET"],
+                min_port=environ["COTURN_MIN_PORT"],
+                max_port=environ["COTURN_MAX_PORT"],
+                external_ip=environ["COTURN_EXTERNAL_IP"],
+
+            )
         # Always regenerate all other config files
         generate_worker_files(environ, config_path, data_dir)
 
