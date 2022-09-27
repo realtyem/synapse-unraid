@@ -50,7 +50,6 @@ total-quota=1200
 use-auth-secret
 static-auth-secret={{ coturn_secret }}
 realm={{ server_name }}
-lt-cred-mech
 fingerprint
 # cipher-list="HIGH"
 listening-port=3478
@@ -58,8 +57,13 @@ listening-ip=0.0.0.0
 min-port={{ min_port }}
 max-port={{ max_port }}
 external-ip={{ external_ip }}
+log-file=/data/logs/turnserver.log
+new-log-timestamp
+no-cli
 
 # Won't need these for now as we aren't using TLS to secure the connection, yet.
 # cert=/data/{{ server_name }}.tls.crt
 # pkey=/data/{{ server_name }}.tls.key
 # dh-file=/data/{{ server_name }}.tls.dh
+no-tls
+no-dtls
