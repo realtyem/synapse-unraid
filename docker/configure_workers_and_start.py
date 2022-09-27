@@ -819,6 +819,8 @@ def main(args: List[str], environ: MutableMapping[str, str]) -> None:
             value = "49172"
             environ["COTURN_MAX_PORT"] = value
 
+        environ["COTURN_METRICS"] = str(getenv_bool("COTURN_METRICS", False))
+
     # Generate the base homeserver config if one does not yet exist
     if not os.path.exists(config_path):
         log("Generating base homeserver config")
@@ -876,6 +878,7 @@ def main(args: List[str], environ: MutableMapping[str, str]) -> None:
                 min_port=environ["COTURN_MIN_PORT"],
                 max_port=environ["COTURN_MAX_PORT"],
                 external_ip=environ["COTURN_EXTERNAL_IP"],
+                enable_coturn_metrics=environ["COTURN_METRICS"],
             )
         # Always regenerate all other config files
         generate_worker_files(environ, config_path, data_dir)

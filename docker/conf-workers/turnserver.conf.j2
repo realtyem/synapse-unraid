@@ -61,6 +61,12 @@ log-file=/data/logs/turnserver.log
 new-log-timestamp
 no-cli
 
+{% if enable_coturn_metrics == "True" -%}
+prometheus
+prometheus-username-labels
+prometheus-port=9641
+{% endif %}
+
 # Won't need these for now as we aren't using TLS to secure the connection, yet.
 # cert=/data/{{ server_name }}.tls.crt
 # pkey=/data/{{ server_name }}.tls.key
