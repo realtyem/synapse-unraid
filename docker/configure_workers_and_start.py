@@ -794,21 +794,8 @@ def main(args: List[str], environ: MutableMapping[str, str]) -> None:
     environ["SYNAPSE_EMAIL"] = str(getenv_bool("SYNAPSE_EMAIL", False))
     if enable_coturn is True:
         if "SYNAPSE_TURN_SECRET" not in environ:
-            # lifted right from start.py, because it works great.
-            filename = "/data/turn_secret.key"
-
-            # if the file already exists, load in the existing value; otherwise,
-            # generate a new secret and write it to a file
-
-            if os.path.exists(filename):
-                log("Reading %s from %s" % ("SYNAPSE_TURN_SECRET", filename))
-                with open(filename) as handle:
-                    value = handle.read()
-            else:
-                log("Generating a random secret for SYNAPSE_TURN_SECRET")
-                value = codecs.encode(os.urandom(32), "hex").decode()
-                with open(filename, "w") as handle:
-                    handle.write(value)
+            log("Generating a random secret for SYNAPSE_TURN_SECRET")
+            value = codecs.encode(os.urandom(32), "hex").decode()
             environ["SYNAPSE_TURN_SECRET"] = value
 
         if "SYNAPSE_TURN_URIS" not in environ:
