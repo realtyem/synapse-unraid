@@ -696,6 +696,7 @@ def generate_worker_files(
         enable_postgres_exporter=enable_postgres_exporter,
         enable_prometheus=enable_prometheus,
         enable_compressor=enable_compressor,
+        enable_coturn=enable_coturn,
     )
 
     convert(
