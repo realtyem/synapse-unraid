@@ -869,7 +869,7 @@ def main(args: List[str], environ: MutableMapping[str, str]) -> None:
         if enable_coturn is True:
             convert(
                 "/conf/turnserver.conf.j2",
-                "/data/turnserver.conf",
+                "/conf/turnserver.conf",
                 server_name=environ["SYNAPSE_SERVER_NAME"],
                 coturn_secret=environ["SYNAPSE_TURN_SECRET"],
                 min_port=environ["COTURN_MIN_PORT"],
