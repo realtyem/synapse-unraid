@@ -202,13 +202,19 @@ RUN \
     cron \
     curl \
     gosu \
-    libjpeg62-turbo \
-    libpq5 \
-    libwebp6 \
-    xmlsec1 \
+    libevent-core-2.1-7 \
+    libevent-extra-2.1-7 \
+    libevent-openssl-2.1-7 \
+    libevent-pthreads-2.1-7 \
+    libhiredis0.14 \
     libjemalloc2 \
+    libjpeg62-turbo \
+    libmicrohttpd12 \
+    libpq5 \
     libssl-dev \
+    libwebp6 \
     openssl \
+    xmlsec1 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /install /usr/local
