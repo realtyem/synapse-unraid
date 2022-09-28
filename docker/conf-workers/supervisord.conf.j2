@@ -78,7 +78,7 @@ stderr_logfile_maxbytes=0
 
 [program:coturn]
 priority = 500
-command = /usr/local/bin/prefix-log /usr/bin/coturn -c /conf/turnserver.conf
+command = /usr/local/bin/prefix-log /usr/bin/turnserver -c /conf/turnserver.conf
 autorestart = unexpected
 autostart={{ enable_coturn }}
 username=turnserver
