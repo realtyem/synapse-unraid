@@ -199,7 +199,6 @@ RUN \
    --mount=type=cache,target=/var/cache/apt,sharing=locked \
    --mount=type=cache,target=/var/lib/apt,sharing=locked \
   apt-get update -qq && apt-get install -yqq \
-    coturn \
     cron \
     curl \
     gosu \
@@ -243,11 +242,14 @@ COPY --from=deps_base /usr/share/prometheus/* /usr/share/prometheus
 # COPY --from=tools /etc/ssl/certs /etc/ssl/certs
 
 # Copy in the auto state compressor and the redis metrics exporter
-COPY --from=realtyem/synapse-tools:latest /usr/local/bin/synapse_compress_state \
-    /usr/local/bin/synapse_auto_compressor \
-    /usr/local/bin/postgres_exporter \
-    /usr/local/bin/redis_exporter \
-    /usr/local/bin/
+# COPY --from=realtyem/synapse-tools:latest /usr/local/bin/synapse_compress_state \
+#    /usr/local/bin/synapse_auto_compressor \
+#    /usr/local/bin/postgres_exporter \
+#    /usr/local/bin/redis_exporter \
+#    /usr/local/bin/
+# This will simplify the copying of programs and libs. Also will keeps future layers
+# from spiraling out of control.
+COPY --from=realtyem/synapse-tools:latest /out /
 
 # Copy Synapse worker, nginx and supervisord configuration template files
 # The base start up script, used to generate some config files
