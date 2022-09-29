@@ -811,11 +811,11 @@ def main(args: List[str], environ: MutableMapping[str, str]) -> None:
             value = urllib.request.urlopen("https://v4.ident.me").read().decode("utf8")
             environ["COTURN_EXTERNAL_IP"] = value
 
-        # if "COTURN_INTERNAL_IP" not in environ:
-        #    value = subprocess.run(
-        #            ["hostname", "-i", "|", "awk", "'{print $1}'"], stdout=subprocess.PIPE
-        #        ).stdout.decode("utf-8")
-        #    environ["COTURN_INTERNAL_IP"] = value
+        if "COTURN_INTERNAL_IP" not in environ:
+            value = subprocess.run(
+                    ["hostname", "-i"], stdout=subprocess.PIPE
+                ).stdout.decode("utf-8")
+            environ["COTURN_INTERNAL_IP"] = value
 
         if "COTURN_MIN_PORT" not in environ:
             value = "49153"

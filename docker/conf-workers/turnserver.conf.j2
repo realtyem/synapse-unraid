@@ -49,7 +49,7 @@ denied-peer-ip=240.0.0.0-255.255.255.255
 # special case the turn server itself so that client->TURN->TURN->client flows work
 # this should be one of the turn server's listening IPs
 # This is wrong, also it'll be automatically done thanks to the listening-ip being commented out
-# allowed-peer-ip=10.0.0.1
+# allowed-peer-ip={{ internal_ip }}
 
 # consider whether you want to limit the quota of relayed streams per user (or total) to avoid risk of DoS.
 user-quota=12 # 4 streams per video call, so 12 streams = 3 simultaneous relayed calls per user.
