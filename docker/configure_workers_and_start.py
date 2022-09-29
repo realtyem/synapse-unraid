@@ -812,11 +812,11 @@ def main(args: List[str], environ: MutableMapping[str, str]) -> None:
             environ["COTURN_EXTERNAL_IP"] = value
 
         if "COTURN_MIN_PORT" not in environ:
-            value = "49152"
+            value = "49153"
             environ["COTURN_MIN_PORT"] = value
 
         if "COTURN_MAX_PORT" not in environ:
-            value = "49172"
+            value = "49173"
             environ["COTURN_MAX_PORT"] = value
 
         environ["COTURN_METRICS"] = str(getenv_bool("COTURN_METRICS", False))

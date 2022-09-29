@@ -8,11 +8,16 @@
 # If you need to handle more than, say, 12 people's VoIP at the same time, install coturn as
 # a separate docker image and make it's network 'host' and you'll have a better time.
 #
-# On your router, forward port 3478(for both TCP and UDP) to your UNRaid machine's static IP. Also
-# forward ports 49152-49172 for UDP only to the same UNRaid static IP.
+# Useful info on ports:
+# https://about.att.com/sites/broadband/network (down near the bottom)
 #
-# Expose port 3478 on the synapse container to host port 3478 in the synapse template for both TCP and UDP.
-# Additionally, expose ports 49152-49172 for UDP only in the same template. Those can be expressed as a
+# Check with your ISP for documentation on which ports they block, like 25, 139, 3479, 49152
+#
+# On your router, forward port 5349(for both TCP and UDP) to your UNRaid machine's static IP. Also
+# forward ports 49153-49173 for UDP only to the same UNRaid static IP.
+#
+# Expose port 5349 on the synapse container to host port 5349 in the synapse template for both TCP and UDP.
+# Additionally, expose ports 49153-49173 for UDP only in the same template. Those can be expressed as a
 # range(with the same dash like here)
 #
 # Synapse VoIP traffic is all UDP, so disallow TCP. Notice the 'relay' part of that option.
@@ -21,7 +26,9 @@ no-tcp-relay
 # don't let the relay ever try to connect to private IP address ranges within your network (if any)
 # given the turn server is likely behind your firewall, remember to include any privileged public IPs too.
 denied-peer-ip=10.0.0.0-10.255.255.255
+# Most common DHCP assigned internal addresses
 denied-peer-ip=192.168.0.0-192.168.255.255
+# These are addresses reserved for docker
 denied-peer-ip=172.16.0.0-172.31.255.255
 
 # recommended additional local peers to block, to mitigate external access to internal services.
@@ -41,19 +48,24 @@ denied-peer-ip=240.0.0.0-255.255.255.255
 
 # special case the turn server itself so that client->TURN->TURN->client flows work
 # this should be one of the turn server's listening IPs
-allowed-peer-ip=10.0.0.1
+# This is wrong, also it'll be automatically done thanks to the listening-ip being commented out
+# allowed-peer-ip=10.0.0.1
 
 # consider whether you want to limit the quota of relayed streams per user (or total) to avoid risk of DoS.
 user-quota=12 # 4 streams per video call, so 12 streams = 3 simultaneous relayed calls per user.
 total-quota=1200
 
-use-auth-secret
-static-auth-secret={{ coturn_secret }}
+# use-auth-secret
+# static-auth-secret={{ coturn_secret }}
 realm={{ server_name }}
+# Don't need this, as it's used for oauth only
+# server-name={{ server_name }}
 fingerprint
 # cipher-list="HIGH"
-listening-port=3478
-listening-ip=0.0.0.0
+listening-port=5349
+
+# Leave this blank and it will be auto detected
+# listening-ip=0.0.0.0
 min-port={{ min_port }}
 max-port={{ max_port }}
 external-ip={{ external_ip }}
@@ -63,8 +75,9 @@ no-cli
 
 {% if enable_coturn_metrics == "True" -%}
 prometheus
-prometheus-username-labels
-prometheus-port=9641
+# These next two options are broken at this time. Save them for now.
+# prometheus-username-labels
+# prometheus-port=9641
 {% endif %}
 
 # Won't need these for now as we aren't using TLS to secure the connection, yet.
@@ -73,3 +86,15 @@ prometheus-port=9641
 # dh-file=/data/{{ server_name }}.tls.dh
 no-tls
 no-dtls
+
+# Limit the number of threads used for relay ports
+relay-threads=4
+
+# Database, we don't need or use this
+# redis-userdb="ip=127.0.0.1 dbname=2 connect_timeout=60"
+# redis-statdb="ip=127.0.0.1 dbname=2 connect_timeout=60"
+
+
+lt-cred-mech
+user=test:test
+verbose
