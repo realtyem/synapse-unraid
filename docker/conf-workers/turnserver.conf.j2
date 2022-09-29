@@ -55,8 +55,8 @@ denied-peer-ip=240.0.0.0-255.255.255.255
 user-quota=12 # 4 streams per video call, so 12 streams = 3 simultaneous relayed calls per user.
 total-quota=1200
 
-# use-auth-secret
-# static-auth-secret={{ coturn_secret }}
+use-auth-secret
+static-auth-secret={{ coturn_secret }}
 realm={{ server_name }}
 # Don't need this, as it's used for oauth only
 # server-name={{ server_name }}
@@ -68,6 +68,7 @@ listening-port=5349
 # listening-ip=0.0.0.0
 min-port={{ min_port }}
 max-port={{ max_port }}
+# external-ip={{ external_ip }}/{{ internal_ip }}
 external-ip={{ external_ip }}
 log-file=/data/logs/turnserver.log
 new-log-timestamp
@@ -95,6 +96,6 @@ relay-threads=4
 # redis-statdb="ip=127.0.0.1 dbname=2 connect_timeout=60"
 
 
-lt-cred-mech
-user=test:test
-verbose
+# lt-cred-mech
+# user=test:test
+# verbose
