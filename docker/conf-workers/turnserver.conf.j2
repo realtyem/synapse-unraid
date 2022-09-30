@@ -13,10 +13,10 @@
 #
 # Check with your ISP for documentation on which ports they block, like 25, 139, 3479, 49152
 #
-# On your router, forward port 5349(for both TCP and UDP) to your UNRaid machine's static IP. Also
+# On your router, forward port 3478(for both TCP and UDP) to your UNRaid machine's static IP. Also
 # forward ports 49153-49173 for UDP only to the same UNRaid static IP.
 #
-# Expose port 5349 on the synapse container to host port 5349 in the synapse template for both TCP and UDP.
+# Expose port 3478 on the synapse container to host port 3478 in the synapse template for both TCP and UDP.
 # Additionally, expose ports 49153-49173 for UDP only in the same template. Those can be expressed as a
 # range(with the same dash like here)
 #
@@ -62,14 +62,13 @@ realm={{ server_name }}
 # server-name={{ server_name }}
 fingerprint
 # cipher-list="HIGH"
-listening-port=5349
+listening-port=3478
 
 # Leave this blank and it will be auto detected
 # listening-ip=0.0.0.0
 min-port={{ min_port }}
 max-port={{ max_port }}
-# external-ip={{ external_ip }}/{{ internal_ip }}
-external-ip={{ external_ip }}
+external-ip={{ external_ip }}/{{ internal_ip }}
 log-file=/data/logs/turnserver.log
 new-log-timestamp
 no-cli

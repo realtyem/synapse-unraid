@@ -41,6 +41,7 @@
 import codecs
 import os
 import shutil
+import socket
 import subprocess
 import sys
 import urllib.request
@@ -812,9 +813,7 @@ def main(args: List[str], environ: MutableMapping[str, str]) -> None:
             environ["COTURN_EXTERNAL_IP"] = value
 
         if "COTURN_INTERNAL_IP" not in environ:
-            value = subprocess.run(
-                    ["hostname", "-i"], stdout=subprocess.PIPE
-                ).stdout.decode("utf-8")
+            value = str(socket.gethostbyname(socket.gethostname()))
             environ["COTURN_INTERNAL_IP"] = value
 
         if "COTURN_MIN_PORT" not in environ:
@@ -883,6 +882,7 @@ def main(args: List[str], environ: MutableMapping[str, str]) -> None:
                 coturn_secret=environ["SYNAPSE_TURN_SECRET"],
                 min_port=environ["COTURN_MIN_PORT"],
                 max_port=environ["COTURN_MAX_PORT"],
+                internal_ip=environ["COTURN_INTERNAL_IP"],
                 external_ip=environ["COTURN_EXTERNAL_IP"],
                 enable_coturn_metrics=environ["COTURN_METRICS"],
             )
