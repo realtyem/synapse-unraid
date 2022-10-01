@@ -38,10 +38,13 @@
 # in the project's README), this script may be run multiple times, and functionality should
 # continue to work if so.
 
+import codecs
 import os
 import shutil
+import socket
 import subprocess
 import sys
+import urllib.request
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, MutableMapping, NoReturn, Optional, Set
 
@@ -51,6 +54,7 @@ from jinja2 import Environment, FileSystemLoader
 MAIN_PROCESS_HTTP_LISTENER_PORT = 8080
 MAIN_PROCESS_HTTP_METRICS_LISTENER_PORT = 8060
 enable_compressor = False
+enable_coturn = False
 enable_prometheus = False
 enable_redis_exporter = False
 enable_postgres_exporter = False
@@ -693,6 +697,7 @@ def generate_worker_files(
         enable_postgres_exporter=enable_postgres_exporter,
         enable_prometheus=enable_prometheus,
         enable_compressor=enable_compressor,
+        enable_coturn=enable_coturn,
     )
 
     convert(
@@ -753,6 +758,7 @@ def main(args: List[str], environ: MutableMapping[str, str]) -> None:
     data_dir = environ.get("SYNAPSE_DATA_DIR", "/data")
     # Enable add-ons from environment string
     global enable_compressor
+    global enable_coturn
     global enable_prometheus
     global enable_redis_exporter
     global enable_postgres_exporter
@@ -760,6 +766,7 @@ def main(args: List[str], environ: MutableMapping[str, str]) -> None:
         getenv_bool("SYNAPSE_ENABLE_COMPRESSOR", False)
         and "POSTGRES_PASSWORD" in environ
     )
+    enable_coturn = getenv_bool("SYNAPSE_ENABLE_BUILTIN_COTURN", False)
     enable_prometheus = getenv_bool("SYNAPSE_METRICS", False)
     enable_redis_exporter = (
         getenv_bool("SYNAPSE_ENABLE_REDIS_METRIC_EXPORT", False)
@@ -787,6 +794,37 @@ def main(args: List[str], environ: MutableMapping[str, str]) -> None:
         getenv_bool("SYNAPSE_SERVE_SERVER_WELLKNOWN", False)
     )
     environ["SYNAPSE_EMAIL"] = str(getenv_bool("SYNAPSE_EMAIL", False))
+    if enable_coturn is True:
+        if "SYNAPSE_TURN_SECRET" not in environ:
+            log("Generating a random secret for SYNAPSE_TURN_SECRET")
+            value = codecs.encode(os.urandom(32), "hex").decode()
+            environ["SYNAPSE_TURN_SECRET"] = value
+
+        if "SYNAPSE_TURN_URIS" not in environ:
+            log("Make sure you setup port forwarding for port 3478")
+            value = "turn:%s:3478?transport=udp,turn:%s:3478?transport=tcp" % (
+                environ["SYNAPSE_SERVER_NAME"],
+                environ["SYNAPSE_SERVER_NAME"],
+            )
+            environ["SYNAPSE_TURN_URIS"] = value
+
+        if "COTURN_EXTERNAL_IP" not in environ:
+            value = urllib.request.urlopen("https://v4.ident.me").read().decode("utf8")
+            environ["COTURN_EXTERNAL_IP"] = value
+
+        if "COTURN_INTERNAL_IP" not in environ:
+            value = str(socket.gethostbyname(socket.gethostname()))
+            environ["COTURN_INTERNAL_IP"] = value
+
+        if "COTURN_MIN_PORT" not in environ:
+            value = "49153"
+            environ["COTURN_MIN_PORT"] = value
+
+        if "COTURN_MAX_PORT" not in environ:
+            value = "49173"
+            environ["COTURN_MAX_PORT"] = value
+
+        environ["COTURN_METRICS"] = str(getenv_bool("COTURN_METRICS", False))
 
     # Generate the base homeserver config if one does not yet exist
     if not os.path.exists(config_path):
@@ -836,6 +874,18 @@ def main(args: List[str], environ: MutableMapping[str, str]) -> None:
                 ["chmod", "0755", "/conf/run_pg_exporter.sh"], stdout=subprocess.PIPE
             ).stdout.decode("utf-8")
 
+        if enable_coturn is True:
+            convert(
+                "/conf/turnserver.conf.j2",
+                "/conf/turnserver.conf",
+                server_name=environ["SYNAPSE_SERVER_NAME"],
+                coturn_secret=environ["SYNAPSE_TURN_SECRET"],
+                min_port=environ["COTURN_MIN_PORT"],
+                max_port=environ["COTURN_MAX_PORT"],
+                internal_ip=environ["COTURN_INTERNAL_IP"],
+                external_ip=environ["COTURN_EXTERNAL_IP"],
+                enable_coturn_metrics=environ["COTURN_METRICS"],
+            )
         # Always regenerate all other config files
         generate_worker_files(environ, config_path, data_dir)
 
