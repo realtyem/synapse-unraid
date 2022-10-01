@@ -5,19 +5,23 @@
 
 version: 2
 updates:
-  - package-ecosystem: "docker" # See documentation for possible values
-    directory: "/docker/" # Location of package manifests
+  - # "pip" is the correct setting for poetry, per https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file#package-ecosystem
+    package-ecosystem: "pip"
+    directory: "/"
     schedule:
-      interval: "daily"
-  - package-ecosystem: "pip" # See documentation for possible values
-    directory: "/" # Location of package manifests
+      interval: "weekly"
+
+  - package-ecosystem: "docker"
+    directory: "/docker"
     schedule:
-      interval: "daily"
-  - package-ecosystem: "github-actions" # See documentation for possible values
-    directory: "/" # Location of package manifests
+      interval: "weekly"
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
+
   - package-ecosystem: "cargo" # See documentation for possible values
     directory: "/" # Location of package manifests
     schedule:
-      interval: "daily"
+      interval: "weekly"
