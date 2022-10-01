@@ -8,7 +8,7 @@
 # If you need to handle more than, say, 12 people's VoIP at the same time, install coturn as
 # a separate docker image and make it's network 'host' and you'll have a better time.
 #
-# Useful info on ports:
+# Useful info on ports blocked by ISP's:
 # https://about.att.com/sites/broadband/network (down near the bottom)
 #
 # Check with your ISP for documentation on which ports they block, like 25, 139, 3479, 49152
@@ -18,7 +18,8 @@
 #
 # Expose port 3478 on the synapse container to host port 3478 in the synapse template for both TCP and UDP.
 # Additionally, expose ports 49153-49173 for UDP only in the same template. Those can be expressed as a
-# range(with the same dash like here)
+# range(with the same dash like here). Can be overriden by COTURN_MIN_PORT and COTURN_MAX_PORT
+# in the docker template.
 #
 # Synapse VoIP traffic is all UDP, so disallow TCP. Notice the 'relay' part of that option.
 no-tcp-relay
@@ -48,11 +49,11 @@ denied-peer-ip=240.0.0.0-255.255.255.255
 
 # special case the turn server itself so that client->TURN->TURN->client flows work
 # this should be one of the turn server's listening IPs
-# This is wrong, also it'll be automatically done thanks to the listening-ip being commented out
+# This is automatically thanks to the listening-ip being commented out
 # allowed-peer-ip={{ internal_ip }}
 
 # consider whether you want to limit the quota of relayed streams per user (or total) to avoid risk of DoS.
-user-quota=12 # 4 streams per video call, so 12 streams = 3 simultaneous relayed calls per user.
+user-quota=24 # 4 streams per video call, so 24 streams = 6 simultaneous relayed calls per user.
 total-quota=1200
 
 use-auth-secret
