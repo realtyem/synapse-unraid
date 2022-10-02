@@ -1,9 +1,9 @@
 name: Complement Tests
 
 on:
-#  push:
-#    branches: ["exp/extended-complement"]
   workflow_dispatch:
+  push:
+    branches: ["exp/extended-complement"]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
