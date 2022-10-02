@@ -47,9 +47,36 @@ complement_single_worker_tests = [
     )
 ]
 
+complement_federation_worker_tests = [
+    {
+        "worker_types": "federation_inbound, federation_reader, federation_sender"
+    }
+]
+
+complement_sharding_worker_tests = [
+    {
+        "worker_types": "event_persister,event_persister"
+    },
+    {
+        "worker_types": "federation_sender,federation_sender,federation_sender,federation_sender"
+    },
+    {
+        "worker_types": "pusher,pusher"
+    }
+]
+
+complement_stream_writers_worker_tests = [
+    {
+        "worker_types": "account_data,event_persister,presence,receipts,to_device,typing"
+    }
+]
 print("::group::Calculated Complement jobs")
-print(json.dumps(complement_single_worker_tests, indent=4))
+print(json.dumps(complement_single_worker_tests+complement_sharding_worker_tests+complement_stream_writers_worker_tests, indent=4))
 print("::endgroup::")
 
 test_matrix = json.dumps(complement_single_worker_tests)
-print(f"::set-output name=complement_test_matrix::{test_matrix}")
+print(f"::set-output name=complement_singles_test_matrix::{test_matrix}")
+test_matrix = json.dumps(complement_sharding_worker_tests)
+print(f"::set-output name=complement_sharding_test_matrix::{test_matrix}")
+test_matrix = json.dumps(complement_stream_writers_worker_tests)
+print(f"::set-output name=complement_stream_writers_test_matrix::{test_matrix}")
