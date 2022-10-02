@@ -1,9 +1,8 @@
-name: Tests
+name: Complement Tests
 
 on:
   push:
-    branches: ["unraid_develop", "exp/*"]
-  pull_request:
+    branches: ["exp/extended-complement"]
   workflow_dispatch:
 
 concurrency:
