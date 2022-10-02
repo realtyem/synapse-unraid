@@ -53,10 +53,9 @@ jobs:
           POSTGRES: ${{ (matrix.job.database == 'Postgres') && 1 || '' }}
           WORKERS: ${{ (matrix.job.arrangement == 'workers') && 1 || '' }}
           SYNAPSE_WORKER_TYPES: ${{ matrix.job.worker_types }}
-          COMPLEMENT_DIR: `pwd`/complement
         run: |
           set -o pipefail
-          synapse/scripts-dev/complement-extended.sh -json 2>&1 | synapse/.ci/scripts/gotestfmt
+          COMPLEMENT_DIR=`pwd`/complement synapse/scripts-dev/complement-extended.sh -json 2>&1 | synapse/.ci/scripts/gotestfmt
 
   # a job which marks all the other jobs as complete, and only pings my phone on error.
   tests-done:
