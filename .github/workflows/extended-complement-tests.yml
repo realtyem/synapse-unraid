@@ -1,8 +1,8 @@
 name: Complement Tests
 
 on:
-  push:
-    branches: ["exp/extended-complement"]
+#  push:
+#    branches: ["exp/extended-complement"]
   workflow_dispatch:
 
 concurrency:
