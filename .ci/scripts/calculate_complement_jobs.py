@@ -49,14 +49,8 @@ complement_worker_tests = [
 ]
 
 print("::group::Calculated complement jobs")
-print(
-    json.dumps(
-        complement_worker_tests, indent=4
-    )
-)
+print(json.dumps(complement_worker_tests, indent=4))
 print("::endgroup::")
 
-test_matrix = json.dumps(
-    complement_worker_tests
-)
+test_matrix = json.dumps(complement_worker_tests)
 print(f"::set-output name=complement_test_matrix::{test_matrix}")
