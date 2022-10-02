@@ -49,8 +49,8 @@ jobs:
       - shell: bash
         name: Run Complement Tests
         env:
-          POSTGRES: ${{ (matrix.job.database == 'Postgres') && 1 || '' }}
-          WORKERS: ${{ (matrix.job.arrangement == 'workers') && 1 || '' }}
+          POSTGRES: "true"
+          WORKERS: "true"
           SYNAPSE_WORKER_TYPES: ${{ matrix.job.worker_types }}
         run: |
           set -o pipefail
