@@ -20,11 +20,10 @@ import json
 # Calculate the various types of workers.
 #
 # For each type of test we only run on Py3.10
+# Always use postgres and workers options, so those are excluded here.
 
-complement_worker_tests = [
+complement_single_worker_tests = [
     {
-        "arrangement": "workers",
-        "database": "Postgres",
         "worker_types": workers,
     }
     for workers in (
@@ -48,9 +47,9 @@ complement_worker_tests = [
     )
 ]
 
-print("::group::Calculated complement jobs")
-print(json.dumps(complement_worker_tests, indent=4))
+print("::group::Calculated Complement jobs")
+print(json.dumps(complement_single_worker_tests, indent=4))
 print("::endgroup::")
 
-test_matrix = json.dumps(complement_worker_tests)
+test_matrix = json.dumps(complement_single_worker_tests)
 print(f"::set-output name=complement_test_matrix::{test_matrix}")
