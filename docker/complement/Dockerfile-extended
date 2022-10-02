@@ -44,7 +44,7 @@ FROM realtyem/synapse:$SYNAPSE_VERSION
     COPY conf/postgres.supervisord.conf /etc/supervisor/conf.d/postgres.conf
 
     # Copy the entrypoint
-    COPY conf/start_for_complement.sh /
+    COPY conf/start_for_complement_extended.sh /
 
     # Expose nginx's listener ports
     EXPOSE 8008 8448
