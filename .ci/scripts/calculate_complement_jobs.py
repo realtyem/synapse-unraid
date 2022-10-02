@@ -13,118 +13,50 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Calculate the trial jobs to run based on if we're in a PR or not.
+# Copied heavily from calculate_jobs.py to set various complement jobs.
 
 import json
-import os
 
-IS_PR = os.environ["GITHUB_REF"].startswith("refs/pull/")
-
-# First calculate the various trial jobs.
+# Calculate the various types of workers.
 #
-# For each type of test we only run on Py3.7 on PRs
+# For each type of test we only run on Py3.10
 
-trial_sqlite_tests = [
+complement_worker_tests = [
     {
-        "python-version": "3.10",
-        "database": "sqlite",
-        "extras": "all",
+        "arrangement": "workers",
+        "database": "Postgres",
+        "worker_types": workers,
     }
-]
-
-# if not IS_PR:
-#    trial_sqlite_tests.extend(
-#        {
-#            "python-version": version,
-#            "database": "sqlite",
-#            "extras": "all",
-#        }
-#        for version in ("3.8", "3.9", "3.10")
-#    )
-
-
-trial_postgres_tests = [
-    {
-        "python-version": "3.10",
-        "database": "postgres",
-        "postgres-version": "10",
-        "extras": "all",
-    }
-]
-
-if not IS_PR:
-    trial_postgres_tests.append(
-        {
-            "python-version": "3.10",
-            "database": "postgres",
-            "postgres-version": "14",
-            "extras": "all",
-        }
+    for workers in (
+        "account_data",
+        # "appservice",
+        "background_worker",
+        "event_creator",
+        "event_persister",
+        "federation_inbound",
+        "federation_reader",
+        "federation_sender",
+        "frontend_proxy",
+        "media_repository",
+        "presence",
+        "pusher",
+        "receipts",
+        "synchrotron",
+        "to_device",
+        "typing",
+        "user_dir",
     )
-
-trial_no_extra_tests = [
-    {
-        "python-version": "3.10",
-        "database": "sqlite",
-        "extras": "",
-    }
 ]
 
-print("::group::Calculated trial jobs")
+print("::group::Calculated complement jobs")
 print(
     json.dumps(
-        trial_sqlite_tests + trial_postgres_tests + trial_no_extra_tests, indent=4
+        complement_worker_tests, indent=4
     )
 )
 print("::endgroup::")
 
 test_matrix = json.dumps(
-    trial_sqlite_tests + trial_postgres_tests + trial_no_extra_tests
+    complement_worker_tests
 )
-print(f"::set-output name=trial_test_matrix::{test_matrix}")
-
-
-# First calculate the various sytest jobs.
-#
-# Only run debian variants on PRs, for unraid_develop run more options. Bullseye isn't
-# available, so run newer stuff only as the docker image will be bullseye or newer,
-# except focal.
-
-
-sytest_tests = [
-    {
-        "sytest-tag": "bookworm-python3.10",
-    },
-    {
-        "sytest-tag": "bookworm-python3.10",
-        "postgres": "postgres",
-    },
-    {
-        "sytest-tag": "bookworm-python3.10",
-        "postgres": "multi-postgres",
-        "workers": "workers",
-    },
-]
-
-if not IS_PR:
-    sytest_tests.extend(
-        [
-            {
-                "sytest-tag": "focal",
-                "postgres": "postgres",
-            },
-            {
-                "sytest-tag": "focal",
-                "postgres": "postgres",
-                "workers": "workers",
-            },
-        ]
-    )
-
-
-print("::group::Calculated sytest jobs")
-print(json.dumps(sytest_tests, indent=4))
-print("::endgroup::")
-
-test_matrix = json.dumps(sytest_tests)
-print(f"::set-output name=sytest_test_matrix::{test_matrix}")
+print(f"::set-output name=complement_test_matrix::{test_matrix}")
