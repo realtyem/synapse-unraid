@@ -56,7 +56,7 @@ jobs:
           COMPLEMENT_DIR: `pwd`/complement
         run: |
           set -o pipefail
-          synapse/scripts-dev/complement.sh -json 2>&1 | synapse/.ci/scripts/gotestfmt
+          synapse/scripts-dev/complement-extended.sh -json 2>&1 | synapse/.ci/scripts/gotestfmt
 
   # a job which marks all the other jobs as complete, and only pings my phone on error.
   tests-done:
