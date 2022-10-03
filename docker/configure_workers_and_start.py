@@ -238,6 +238,7 @@ WORKERS_CONFIG: Dict[str, Dict[str, Any]] = {
 NGINX_LOCATION_CONFIG_BLOCK = """
     location ~* {endpoint} {{
         proxy_pass {upstream};
+        proxy_buffering off;
         proxy_set_header X-Forwarded-For $remote_addr;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header Host $host;
