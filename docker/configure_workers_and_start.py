@@ -238,6 +238,7 @@ WORKERS_CONFIG: Dict[str, Dict[str, Any]] = {
 NGINX_LOCATION_CONFIG_BLOCK = """
     location ~* {endpoint} {{
         proxy_pass {upstream};
+        proxy_buffering off;
         proxy_set_header X-Forwarded-For $remote_addr;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_set_header Host $host;
@@ -507,7 +508,7 @@ def generate_worker_files(
     # Read the desired worker configuration from the environment
     worker_types_env = environ.get("SYNAPSE_WORKER_TYPES", "").strip()
     if worker_types_env == "full":
-        worker_types_env = "account_data,background_worker,event_creator,event_persister,federation_inbound,federation_reader,federation_sender,federation_sender,federation_sender,frontend_proxy,media_repository,pusher,synchrotron,synchrotron,synchrotron,user_dir"
+        worker_types_env = "account_data,background_worker,event_creator,event_persister,federation_inbound,federation_reader,federation_sender,frontend_proxy,media_repository,pusher,synchrotron,synchrotron,synchrotron,user_dir"
 
         worker_types_env = worker_types_env.strip()
     if not worker_types_env:
