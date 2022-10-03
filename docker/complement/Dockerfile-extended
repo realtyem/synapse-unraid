@@ -30,6 +30,7 @@ FROM realtyem/synapse:$SYNAPSE_VERSION
     # Configure a password and create a database for Synapse
     RUN echo "ALTER USER postgres PASSWORD 'somesecret'" | gosu postgres postgres --single
     RUN echo "CREATE DATABASE synapse" | gosu postgres postgres --single
+    RUN echo "ALTER SYSTEM SET max_connections TO '500'" | gosu postgres postgres --single
 
     # Extend the shared homeserver config to disable rate-limiting,
     # set Complement's static shared secret, enable registration, amongst other
