@@ -30,6 +30,7 @@ complement_single_worker_tests = [
         "account_data",
         # "appservice",
         "background_worker",
+        "client_reader",
         "event_creator",
         "event_persister",
         "federation_inbound",
