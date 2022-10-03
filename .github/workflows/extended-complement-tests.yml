@@ -164,8 +164,9 @@ jobs:
   tests-done:
     if: ${{ always() }}
     needs:
-      - singles
+      - nuclear
       - sharding
+      - singles
       - stream_writers
     runs-on: ubuntu-22.04
     steps:
