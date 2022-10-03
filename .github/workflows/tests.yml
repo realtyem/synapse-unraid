@@ -65,7 +65,7 @@ jobs:
         run: scripts-dev/check_line_terminators.sh
 
   lint-newsfile:
-    if: ${{ github.base_ref == 'develop' }}
+    if: ${{ (github.base_ref == 'develop'  || contains(github.base_ref, 'release-')) && github.actor != 'dependabot[bot]' }}
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
@@ -100,7 +100,7 @@ jobs:
     if: ${{ needs.changes.outputs.rust == 'true' }}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
@@ -118,7 +118,7 @@ jobs:
     if: ${{ needs.changes.outputs.rust == 'true' }}
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
@@ -488,7 +488,7 @@ jobs:
       - changes
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
