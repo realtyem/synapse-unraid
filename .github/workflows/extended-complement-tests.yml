@@ -20,8 +20,9 @@ jobs:
       - id: get-matrix
         run: .ci/scripts/calculate_complement_jobs.py
     outputs:
-      complement_singles_test_matrix: ${{ steps.get-matrix.outputs.complement_singles_test_matrix}}
+      complement_nuclear_test_matrix: ${{ steps.get-matrix.outputs.complement_nuclear_test_matrix}}
       complement_sharding_test_matrix: ${{ steps.get-matrix.outputs.complement_sharding_test_matrix}}
+      complement_singles_test_matrix: ${{ steps.get-matrix.outputs.complement_singles_test_matrix}}
       complement_stream_writers_test_matrix: ${{ steps.get-matrix.outputs.complement_stream_writers_test_matrix}}
 
   singles:

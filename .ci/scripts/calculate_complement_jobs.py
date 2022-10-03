@@ -69,12 +69,13 @@ complement_nuclear_worker_tests = [
         "worker_types": "account_data, account_data, background_worker, event_creator, event_creator, event_persister, event_persister, federation_inbound, federation_reader, federation_reader, federation_sender, federation_sender, frontend_proxy, media_repository, media_repository, pusher, pusher, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, to_device, to_device, user_dir, user_dir"
     }
 ]
+
 print("::group::Calculated Complement jobs")
 print(
     json.dumps(
         complement_single_worker_tests
         + complement_sharding_worker_tests
-        + complement_stream_writers_worker_tests,
+        + complement_stream_writers_worker_tests
         + complement_nuclear_worker_tests,
         indent=4,
     )
