@@ -53,11 +53,9 @@ complement_federation_worker_tests = [
 
 complement_sharding_worker_tests = [
     {"worker_types": "event_persister, event_persister"},
-    {"worker_types": "federation_sender, federation_sender, federation_sender"},
+    {"worker_types": "federation_sender, federation_sender"},
     {"worker_types": "pusher, pusher"},
-    {
-        "worker_types": "synchrotorn, synchrotorn, synchrotorn, synchrotorn, synchrotorn, synchrotorn, synchrotorn, synchrotorn, synchrotorn, synchrotorn"
-    },
+    {"worker_types": "synchrotron, synchrotron"},
 ]
 
 complement_stream_writers_worker_tests = [
@@ -68,7 +66,7 @@ complement_stream_writers_worker_tests = [
 
 complement_nuclear_worker_tests = [
     {
-        "worker_types": "account_data, account_data, background_worker, event_creator, event_creator, event_persister, event_persister, federation_inbound, federation_reader, federation_reader, federation_sender, federation_sender, federation_sender, frontend_proxy, media_repository, media_repository, pusher, pusher, pusher, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, to_device, to_device, user_dir, user_dir"
+        "worker_types": "account_data, account_data, background_worker, event_creator, event_creator, event_persister, event_persister, federation_inbound, federation_reader, federation_reader, federation_sender, federation_sender, frontend_proxy, media_repository, media_repository, pusher, pusher, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, to_device, to_device, user_dir, user_dir"
     }
 ]
 print("::group::Calculated Complement jobs")
@@ -77,6 +75,7 @@ print(
         complement_single_worker_tests
         + complement_sharding_worker_tests
         + complement_stream_writers_worker_tests,
+        + complement_nuclear_worker_tests,
         indent=4,
     )
 )
