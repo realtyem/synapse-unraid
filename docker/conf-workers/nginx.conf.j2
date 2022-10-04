@@ -37,6 +37,13 @@ server {
 
 {{ worker_locations }}
 
+    # Add in .well-known/matrix location, so it can be reached from outside if they have
+    # serve_server_wellknown = true in the homeserver.yaml file.
+    location ^~ /.well-known/matrix {
+        add_header Access-Control-Allow-Origin *;
+        proxy_pass http://localhost:8080/.well-known/matrix;
+    }
+
     # Send all other traffic to the main process
     location ~* ^(\\/_matrix|\\/_synapse) {
         proxy_pass http://localhost:8080;
