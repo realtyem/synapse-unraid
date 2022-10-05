@@ -222,7 +222,9 @@ COPY --from=builder /install /usr/local
 # Prepare directories. Do it in one layer
 RUN mkdir -p /etc/supervisor/conf.d && \
     mkdir /var/log/nginx /var/lib/nginx && \
-    chown www-data /var/log/nginx /var/lib/nginx && \
+    chown www-data /var/lib/nginx && \
+    ln -sf /dev/stdout /var/log/nginx/access.log && \
+    ln -sf /dev/stderr /var/log/nginx/error.log && \
     mkdir -p /etc/prometheus
 
 # Install supervisord with pip instead of apt, to avoid installing a second
