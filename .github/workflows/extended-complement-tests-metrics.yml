@@ -1,4 +1,4 @@
-name: Complement Tests(Metrics:OFF)
+name: Complement Tests(Metrics:ON)
 
 on:
   workflow_dispatch:
@@ -56,6 +56,7 @@ jobs:
         env:
           POSTGRES: "true"
           WORKERS: "true"
+          SYNAPSE_METRICS: "true"
           SYNAPSE_WORKER_TYPES: ${{ matrix.job.worker_types }}
         run: |
           set -o pipefail
@@ -103,6 +104,7 @@ jobs:
         env:
           POSTGRES: "true"
           WORKERS: "true"
+          SYNAPSE_METRICS: "true"
           SYNAPSE_WORKER_TYPES: ${{ matrix.job.worker_types }}
         run: |
           set -o pipefail
@@ -138,6 +140,7 @@ jobs:
         env:
           POSTGRES: "true"
           WORKERS: "true"
+          SYNAPSE_METRICS: "true"
           SYNAPSE_WORKER_TYPES: ${{ matrix.job.worker_types }}
         run: |
           set -o pipefail
@@ -173,6 +176,7 @@ jobs:
         env:
           POSTGRES: "true"
           WORKERS: "true"
+          SYNAPSE_METRICS: "true"
           SYNAPSE_WORKER_TYPES: ${{ matrix.job.worker_types }}
         run: |
           set -o pipefail
