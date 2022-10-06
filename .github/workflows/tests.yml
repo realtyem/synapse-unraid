@@ -2,8 +2,12 @@ name: Tests
 
 on:
   push:
-    branches: ["unraid_develop", "exp/*"]
+    branches: ["unraid_develop", "exp/*", "dependabot/*"]
   pull_request:
+    types:
+      - opened
+      - edit
+
   workflow_dispatch:
 
 concurrency:
