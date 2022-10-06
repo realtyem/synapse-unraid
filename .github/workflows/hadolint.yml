@@ -16,6 +16,9 @@ on:
 #    branches: [ "unraid_develop" ]
 #  schedule:
 #    - cron: '39 5 * * 3'
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
