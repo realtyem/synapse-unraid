@@ -66,6 +66,7 @@ jobs:
   stage_one_done:
     name: "Stage One Done"
     if: ${{ !cancelled() }} # Run this even if prior jobs were skipped
+    continue-on-error: true
     runs-on: ubuntu-latest
     needs:
       - singles
