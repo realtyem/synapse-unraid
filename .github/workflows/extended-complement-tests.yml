@@ -30,6 +30,7 @@ jobs:
     name: "Singles"
     runs-on: ubuntu-latest
     needs: calculate-test-jobs
+    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
@@ -77,6 +78,7 @@ jobs:
     name: "Shards Tests"
     runs-on: ubuntu-latest
     needs: stage_one_done
+    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
@@ -111,6 +113,7 @@ jobs:
   stream_writers:
     name: "All Stream Writers"
     runs-on: ubuntu-latest
+    continue-on-error: true
     needs: stage_one_done
     strategy:
       fail-fast: false
@@ -146,6 +149,7 @@ jobs:
   nuclear:
     name: "Overload GitHub"
     runs-on: ubuntu-latest
+    continue-on-error: true
     needs: stage_one_done
     strategy:
       fail-fast: false
