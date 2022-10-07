@@ -28,7 +28,7 @@ jobs:
 
   singles:
     name: "Singles"
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     needs: calculate-test-jobs
     strategy:
       fail-fast: false
