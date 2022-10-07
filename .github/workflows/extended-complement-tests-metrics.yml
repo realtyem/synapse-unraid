@@ -3,7 +3,7 @@ name: Complement Tests(Metrics:ON)
 on:
   workflow_dispatch:
   push:
-    branches: ["exp/extended-complement", "dependabot/*"]
+    branches: ["exp/extended-complement", "exp/*", "dependabot/*"]
   schedule:
     - cron: 0 4 * * *
 concurrency:
