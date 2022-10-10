@@ -1,15 +1,17 @@
 name: Write changelog for dependabot PR
 on:
+# Found at https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#running-a-workflow-based-on-the-conclusion-of-another-workflow
   pull_request:
     types:
       - opened
       - reopened  # For debugging!
-
 permissions:
-  # Needed to be able to push the commit. See 
+  # Needed to be able to push the commit. See
   #     https://docs.github.com/en/code-security/dependabot/working-with-dependabot/automating-dependabot-with-github-actions#enable-auto-merge-on-a-pull-request
   # for a similar example
+  checks: write
   contents: write
+#  pull-requests: write
 
 jobs:
   add-changelog:
@@ -19,13 +21,21 @@ jobs:
       - uses: actions/checkout@v3
         with:
           ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Display actor and pr number
+        shell: bash
+        run: |
+          echo "Title: ${{ github.event.pull_request.title }}"
+          echo "PR num: ${{ github.event.pull_request.number }}"
+          echo "SHA: ${{ github.event.pull_request.head.sha }}"
+
       - name: Write, commit and push changelog
         run: |
           echo "${{ github.event.pull_request.title }}." > "changelog.d/${{ github.event.pull_request.number }}".misc
           git add changelog.d
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "GitHub Actions"
-          git commit -m "Changelog"
+          git commit -m "Changelog"$'\n\n'"request-checks: true"
           git push
         shell: bash
       # The `git push` above does not trigger CI on the dependabot PR.
@@ -41,6 +51,15 @@ jobs:
       # I have tried and failed to find a way to trigger CI on the "merge ref" of the PR.
       # See git commit history for previous attempts. If anyone desperately wants to try
       # again in the future, make a matrix-bot account and use its access token to git push.
-
+      - name: Trigger CI
+        # Note: we use $GITHUB_REF here to run PR against the merge of this change with
+        # develop; use github.event.pull_request.head.ref above to commit to the PR
+        # branch.
+        run: |
+          echo "sha: ${{ github.event.pull_request.head.sha }}"
+          gh api --method POST -H "Accept: application/vnd.github+json" /repos/realtyem/synapse-unraid/check-suites -f head_sha="${{ github.event.pull_request.head.sha }}"
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   # THIS WORKFLOW HAS WRITE PERMISSIONS---do not add other jobs here unless they
   # are sufficiently locked down to dependabot only as above.
