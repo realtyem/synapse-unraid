@@ -1,27 +1,70 @@
 name: Write changelog for dependabot PR
 on:
-  pull_request:
+# Found at https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#running-a-workflow-based-on-the-conclusion-of-another-workflow
+  workflow_run:
+    workflows: [Tests]
     types:
-      - opened
-      - reopened  # For debugging!
+      - completed
+      - requested
+    branches: ["dependabot/**"]
+  workflow_dispatch:
+#  pull_request:
+#    types:
+#      - opened
+#      - reopened  # For debugging!
 
 permissions:
-  # Needed to be able to push the commit. See 
+  # Needed to be able to push the commit. See
   #     https://docs.github.com/en/code-security/dependabot/working-with-dependabot/automating-dependabot-with-github-actions#enable-auto-merge-on-a-pull-request
   # for a similar example
   contents: write
+  pull-requests: write
+
+# dumped the json of the 'github' context from a workflow_run 'requested' to find the info used here.
+# Matching for ref:
+#   github.event.workflow_run.pull_request.head.ref
+#   github.event.workflow_run.head_branch
+# Matching PR title:
+#   github.event.workflow_run.display_title
+# Matching for PR number:
+#   github.event.workflow_run.pull_request.number
 
 jobs:
+  debug:
+    runs-on: 'ubuntu-latest'
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.workflow_run.pull_request.head.ref }}
+          # ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: "Echo debug stuff"
+        run: echo "${{ toJSON(github) }}"
+        shell: bash
+
   add-changelog:
     runs-on: 'ubuntu-latest'
     if: ${{ github.actor == 'dependabot[bot]' }}
     steps:
+      - name: Display ref
+        shell: bash
+        run: 'echo "Head ref: ${{ github.event.workflow_run.pull_request.head.ref }}"'
+
       - uses: actions/checkout@v3
         with:
-          ref: ${{ github.event.pull_request.head.ref }}
+          ref: ${{ github.event.workflow_run.pull_request.head.ref }}
+          # ref: ${{ github.event.pull_request.head.ref }}
+
+      - name: Display actor and pr number
+        shell: bash
+        run: |
+          echo "Actor: ${{ github.event.workflow_run.pull_request.display_title }}"
+          echo "PR num: ${{ github.event.workflow_run.pull_request.number}}"
+
+# echo "${{ github.event.pull_request.title }}." > "changelog.d/${{ github.event.pull_request.number }}".misc
       - name: Write, commit and push changelog
         run: |
-          echo "${{ github.event.pull_request.title }}." > "changelog.d/${{ github.event.pull_request.number }}".misc
+          echo "${{ github.event.workflow_run.display_title }}." > "changelog.d/${{ github.event.workflow_run.pull_request.number }}".misc
           git add changelog.d
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "GitHub Actions"
