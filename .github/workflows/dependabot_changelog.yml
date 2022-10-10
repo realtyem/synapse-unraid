@@ -1,20 +1,40 @@
 name: Write changelog for dependabot PR
 on:
-  pull_request:
+# Found at https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#running-a-workflow-based-on-the-conclusion-of-another-workflow
+  workflow_run:
+    workflows: [Tests]
     types:
-      - opened
-      - reopened  # For debugging!
+      - completed
+      - requested
+    branches: ["dependabot/**"]
+#  pull_request:
+#    types:
+#      - opened
+#      - reopened  # For debugging!
 
 permissions:
-  # Needed to be able to push the commit. See 
+  # Needed to be able to push the commit. See
   #     https://docs.github.com/en/code-security/dependabot/working-with-dependabot/automating-dependabot-with-github-actions#enable-auto-merge-on-a-pull-request
   # for a similar example
   contents: write
+  pull-requests: write
 
 jobs:
+  debug:
+    runs-on: 'ubuntu-latest'
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+      - name: "Echo debug stuff"
+        run: "echo ${{ toJSON(github) }}"
+        shell: bash
+
   add-changelog:
     runs-on: 'ubuntu-latest'
-    if: ${{ github.actor == 'dependabot[bot]' }}
+#    if: >-
+#      github.actor == 'dependabot[bot]' ||
+#      github.actor == 'github-actions[bot]'
     steps:
       - uses: actions/checkout@v3
         with:
