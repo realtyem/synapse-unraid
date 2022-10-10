@@ -12,13 +12,14 @@
 name: "CodeQL"
 
 on:
-  push:
-    branches: [ "unraid_develop" ]
-  pull_request:
-    # The branches below must be a subset of the branches above
-    branches: [ "unraid_develop" ]
+#  push:
+#    branches: [ "unraid_develop" ]
+#  pull_request:
+#    # The branches below must be a subset of the branches above
+#    branches: [ "unraid_develop" ]
   schedule:
     - cron: '43 8 * * 4'
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
