@@ -378,64 +378,12 @@ def add_sharding_to_shared_config(
             "port": worker_port,
         }
 
-    elif worker_type == "account_data":
+    elif worker_type in ("account_data", "presence", "receipts", "to_device", "typing"):
         # Account data writes to the account_data stream, so we need to update
         # the list of stream writers
         shared_config.setdefault("stream_writers", {}).setdefault(
-            "account_data", []
+            worker_type, []
         ).append(worker_name)
-
-        # Map of stream writer instance names to host/ports combos
-        instance_map[worker_name] = {
-            "host": "localhost",
-            "port": worker_port,
-        }
-
-    elif worker_type == "presence":
-        # Presence writes to the presence stream, so we need to update
-        # the list of stream writers
-        shared_config.setdefault("stream_writers", {}).setdefault(
-            "presence", []
-        ).append(worker_name)
-
-        # Map of stream writer instance names to host/ports combos
-        instance_map[worker_name] = {
-            "host": "localhost",
-            "port": worker_port,
-        }
-
-    elif worker_type == "receipts":
-        # Receipts write to the receipts stream, so we need to update
-        # the list of stream writers
-        shared_config.setdefault("stream_writers", {}).setdefault(
-            "receipts", []
-        ).append(worker_name)
-
-        # Map of stream writer instance names to host/ports combos
-        instance_map[worker_name] = {
-            "host": "localhost",
-            "port": worker_port,
-        }
-
-    elif worker_type == "to_device":
-        # Event persisters write to the events stream, so we need to update
-        # the list of event stream writers
-        shared_config.setdefault("stream_writers", {}).setdefault(
-            "to_device", []
-        ).append(worker_name)
-
-        # Map of stream writer instance names to host/ports combos
-        instance_map[worker_name] = {
-            "host": "localhost",
-            "port": worker_port,
-        }
-
-    elif worker_type == "typing":
-        # Event persisters write to the events stream, so we need to update
-        # the list of event stream writers
-        shared_config.setdefault("stream_writers", {}).setdefault("typing", []).append(
-            worker_name
-        )
 
         # Map of stream writer instance names to host/ports combos
         instance_map[worker_name] = {
@@ -538,17 +486,15 @@ def generate_worker_files(
     if worker_types_env == "full":
         worker_types_env = "account_data,background_worker,event_creator,event_persister,federation_inbound,federation_reader,federation_sender,frontend_proxy,media_repository,pusher,synchrotron,synchrotron,synchrotron,user_dir"
 
-        worker_types_env = worker_types_env.strip()
     if worker_types_env == "BLOW_IT_UP":
         worker_types_env = "account_data, account_data, background_worker, client_reader, client_reader, event_creator, event_persister, event_persister, federation_inbound, federation_reader, federation_reader, federation_sender, frontend_proxy, media_repository, media_repository, pusher, pusher, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, to_device, user_dir, user_dir"
 
-        worker_types_env = worker_types_env.strip()
     if not worker_types_env:
         # No workers, just the main process
         worker_types = []
     else:
-        # Split type names by comma
-        worker_types = worker_types_env.split(",")
+        # Split type names by comma, remove extra whitespace, sometimes it's there.
+        worker_types = [x.strip() for x in worker_types_env.split(",")]
 
     # Create the worker configuration directory if it doesn't already exist
     os.makedirs("/conf/workers", exist_ok=True)
@@ -570,7 +516,8 @@ def generate_worker_files(
 
     # For each worker type specified by the user, create config values
     for worker_type in worker_types:
-        worker_type = worker_type.strip()
+        # we did this above.
+        # worker_type = worker_type.strip()
 
         worker_config = WORKERS_CONFIG.get(worker_type)
         if worker_config:
