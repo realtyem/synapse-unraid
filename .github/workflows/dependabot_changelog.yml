@@ -25,7 +25,7 @@ jobs:
         with:
           ignoreActions: "Add Dependabot Changelog" ## Note that these names are the human readable names use as status on commits, and show up as status checks on PRs.
           checkInterval: 60
-          waitForCheck: true
+          # waitForCheck: true
         env:
           GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
 
