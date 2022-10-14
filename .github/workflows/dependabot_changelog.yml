@@ -15,9 +15,20 @@ permissions:
 
 jobs:
   add-changelog:
+    name: Add Dependabot Changelog
     runs-on: 'ubuntu-latest'
     if: ${{ github.actor == 'dependabot[bot]' }}
     steps:
+      - name: 'Wait for status checks'
+        id: waitforstatuschecks
+        uses: "WyriHaximus/github-action-wait-for-status@v2"
+        with:
+          ignoreActions: "Add Dependabot Changelog" ## Note that these names are the human readable names use as status on commits, and show up as status checks on PRs.
+          checkInterval: 60
+          waitForCheck: true
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+
       - uses: actions/checkout@v3
         with:
           ref: ${{ github.event.pull_request.head.ref }}
@@ -30,6 +41,7 @@ jobs:
           echo "SHA: ${{ github.event.pull_request.head.sha }}"
 
       - name: Write, commit and push changelog
+        if: (steps.waitforstatuschecks.outputs.status == 'success' || steps.waitforstatuschecks.outputs.status == 'failure')
         run: |
           echo "${{ github.event.pull_request.title }}." > "changelog.d/${{ github.event.pull_request.number }}".misc
           git add changelog.d
@@ -51,15 +63,15 @@ jobs:
       # I have tried and failed to find a way to trigger CI on the "merge ref" of the PR.
       # See git commit history for previous attempts. If anyone desperately wants to try
       # again in the future, make a matrix-bot account and use its access token to git push.
-      - name: Trigger CI
+#      - name: Trigger CI
         # Note: we use $GITHUB_REF here to run PR against the merge of this change with
         # develop; use github.event.pull_request.head.ref above to commit to the PR
         # branch.
-        run: |
-          echo "sha: ${{ github.event.pull_request.head.sha }}"
-          gh api --method POST -H "Accept: application/vnd.github+json" /repos/realtyem/synapse-unraid/check-suites -f head_sha="${{ github.event.pull_request.head.sha }}"
-        shell: bash
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#        run: |
+#          echo "sha: ${{ github.event.pull_request.head.sha }}"
+#          gh api --method POST -H "Accept: application/vnd.github+json" /repos/realtyem/synapse-unraid/check-suites -f head_sha="${{ github.event.pull_request.head.sha }}"
+#        shell: bash
+#        env:
+#          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   # THIS WORKFLOW HAS WRITE PERMISSIONS---do not add other jobs here unless they
   # are sufficiently locked down to dependabot only as above.
