@@ -19,16 +19,6 @@ jobs:
     runs-on: 'ubuntu-latest'
     if: ${{ github.actor == 'dependabot[bot]' }}
     steps:
-      - name: 'Wait for status checks'
-        id: waitforstatuschecks
-        uses: "WyriHaximus/github-action-wait-for-status@v1.7"
-        with:
-          ignoreActions: "Add Dependabot Changelog" ## Note that these names are the human readable names use as status on commits, and show up as status checks on PRs.
-          checkInterval: 60
-          # waitForCheck: true
-        env:
-          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
-
       - uses: actions/checkout@v3
         with:
           ref: ${{ github.event.pull_request.head.ref }}
@@ -42,12 +32,14 @@ jobs:
 
       - name: Write, commit and push changelog
         if: (steps.waitforstatuschecks.outputs.status == 'success' || steps.waitforstatuschecks.outputs.status == 'failure')
+        env:
+          GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         run: |
           echo "${{ github.event.pull_request.title }}." > "changelog.d/${{ github.event.pull_request.number }}".misc
           git add changelog.d
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "GitHub Actions"
-          git commit -m "Changelog"$'\n\n\n'"request-checks: true"
+          git commit --amend  --no-edit
           git push
         shell: bash
       # The `git push` above does not trigger CI on the dependabot PR.
