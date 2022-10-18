@@ -66,5 +66,5 @@ jobs:
             TEST_ONLY_IGNORE_BAD_POETRY_LOCKFILE=1
             CARGO_NET_GIT_FETCH_WITH_CLI=true
           platforms: linux/amd64
-#          cache-from: type=gha
-#          cache-to: type=gha,mode=max
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
