@@ -134,6 +134,20 @@ jobs:
 
       - run: cargo fmt --check
 
+  prewarm-cache:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          push: false
+          tags: "synapse:latest"
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+
+
   # Dummy step to gate other tests on without repeating the whole list
   linting-done:
     if: ${{ !cancelled() }} # Run this even if prior jobs were skipped
@@ -146,6 +160,7 @@ jobs:
       - check-schema-delta
       - lint-clippy
       - lint-rustfmt
+      - prewarm-cache
     runs-on: ubuntu-22.04
     steps:
       - run: "true"
@@ -475,12 +490,21 @@ jobs:
             override: true
       - uses: Swatinem/rust-cache@v2
 
+      - name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          push: false
+          tags: "synapse:latest"
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
       - name: Prepare Complement's Prerequisites
         run: synapse/.ci/scripts/setup_complement_prerequisites.sh
 
       - run: |
           set -o pipefail
-          POSTGRES=${{ (matrix.database == 'Postgres') && 1 || '' }} WORKERS=${{ (matrix.arrangement == 'workers') && 1 || '' }} COMPLEMENT_DIR=`pwd`/complement synapse/scripts-dev/complement.sh -json 2>&1 | synapse/.ci/scripts/gotestfmt
+          POSTGRES=${{ (matrix.database == 'Postgres') && 1 || '' }} WORKERS=${{ (matrix.arrangement == 'workers') && 1 || '' }} COMPLEMENT_DIR=`pwd`/complement synapse/scripts-dev/complement.sh -f -json 2>&1 | synapse/.ci/scripts/gotestfmt
         shell: bash
         name: Run Complement Tests
 
