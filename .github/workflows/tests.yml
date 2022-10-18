@@ -502,7 +502,10 @@ jobs:
             override: true
       - uses: Swatinem/rust-cache@v2
 
-      - name: Build and push
+      - name: Prepare Complement's Prerequisites
+        run: synapse/.ci/scripts/setup_complement_prerequisites.sh
+
+      - name: Build base
         uses: docker/build-push-action@v3
         with:
           context: .
@@ -512,8 +515,17 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Prepare Complement's Prerequisites
-        run: synapse/.ci/scripts/setup_complement_prerequisites.sh
+      - name: Build Complement
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          push: false
+          file: "docker/complement/Dockerfile"
+          tags: "complement-synapse"
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+
 
       - run: |
           set -o pipefail
