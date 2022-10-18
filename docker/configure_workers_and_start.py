@@ -488,7 +488,7 @@ def generate_worker_files(
         worker_types_env = "account_data,background_worker,event_creator,event_persister,federation_inbound,federation_reader,federation_sender,frontend_proxy,media_repository,pusher,synchrotron,synchrotron,synchrotron,user_dir"
 
     if worker_types_env == "BLOW_IT_UP":
-        worker_types_env = "account_data, account_data, background_worker, client_reader, client_reader, event_creator, event_persister, event_persister, federation_inbound, federation_reader, federation_reader, federation_sender, frontend_proxy, media_repository, media_repository, pusher, pusher, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, to_device, user_dir, user_dir"
+        worker_types_env = "account_data, background_worker, client_reader, client_reader, event_creator, event_persister, event_persister, federation_inbound, federation_reader, federation_reader, federation_sender, federation_sender, federation_sender, frontend_proxy, media_repository, presence, pusher, pusher, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, to_device, typing, user_dir"
 
     if not worker_types_env:
         # No workers, just the main process
