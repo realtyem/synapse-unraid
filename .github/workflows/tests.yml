@@ -137,11 +137,15 @@ jobs:
   prewarm-cache:
     runs-on: ubuntu-22.04
     steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
       - name: Build and push
         uses: docker/build-push-action@v3
         with:
           context: .
           push: false
+          file: "docker/Dockerfile-unified"
           tags: "synapse:latest"
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -495,6 +499,7 @@ jobs:
         with:
           context: .
           push: false
+          file: "docker/Dockerfile-unified"
           tags: "synapse:latest"
           cache-from: type=gha
           cache-to: type=gha,mode=max
