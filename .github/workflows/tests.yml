@@ -152,7 +152,7 @@ jobs:
           file: "docker/Dockerfile-unified"
           tags: "realtyem/synapse:latest"
           outputs: type=docker,dest=/tmp/synapse-prewarm.tar
-          # cache-from: type=gha
+          cache-from: type=gha
           #cache-to: type=gha,mode=max
 
       - name: Upload artifact
