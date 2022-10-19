@@ -538,7 +538,7 @@ jobs:
           context: ./synapse/docker/complement
           push: false
           file: "synapse/docker/complement/Dockerfile"
-          tags: "complement-synapse"
+          tags: "complement-synapse:latest"
           # cache-from: type=gha
           # cache-to: type=gha,mode=max
 
