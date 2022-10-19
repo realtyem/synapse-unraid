@@ -535,7 +535,7 @@ jobs:
       - name: Build Complement
         uses: docker/build-push-action@v3
         with:
-          context: .
+          context: ./synapse/docker/complement
           push: false
           file: "synapse/docker/complement/Dockerfile"
           tags: "complement-synapse"
