@@ -62,7 +62,7 @@ enable_postgres_exporter = False
 
 WORKERS_CONFIG: Dict[str, Dict[str, Any]] = {
     "pusher": {
-        "app": "synapse.app.pusher",
+        "app": "synapse.app.generic_worker",
         "listener_resources": [],
         "endpoint_patterns": [],
         "shared_extra_conf": {"start_pushers": False},
@@ -78,7 +78,7 @@ WORKERS_CONFIG: Dict[str, Dict[str, Any]] = {
         "worker_extra_conf": "",
     },
     "media_repository": {
-        "app": "synapse.app.media_repository",
+        "app": "synapse.app.generic_worker",
         "listener_resources": ["media"],
         "endpoint_patterns": [
             "^/_matrix/media/",
@@ -99,7 +99,7 @@ WORKERS_CONFIG: Dict[str, Dict[str, Any]] = {
         "worker_extra_conf": "",
     },
     "federation_sender": {
-        "app": "synapse.app.federation_sender",
+        "app": "synapse.app.generic_worker",
         "listener_resources": [],
         "endpoint_patterns": [],
         "shared_extra_conf": {"send_federation": False},
@@ -209,7 +209,7 @@ WORKERS_CONFIG: Dict[str, Dict[str, Any]] = {
         "worker_extra_conf": "",
     },
     "frontend_proxy": {
-        "app": "synapse.app.frontend_proxy",
+        "app": "synapse.app.generic_worker",
         "listener_resources": ["client"],
         "endpoint_patterns": ["^/_matrix/client/(api/v1|r0|v3|unstable)/keys/upload"],
         "shared_extra_conf": {},
@@ -480,7 +480,7 @@ def generate_worker_files(
     # Read the desired worker configuration from the environment
     worker_types_env = environ.get("SYNAPSE_WORKER_TYPES", "").strip()
     if worker_types_env == "full":
-        worker_types_env = "account_data,background_worker,event_creator,event_persister,federation_inbound,federation_reader,federation_sender,frontend_proxy,media_repository,pusher,synchrotron,synchrotron,synchrotron,user_dir"
+        worker_types_env = "account_data,background_worker,event_creator,event_persister,federation_inbound,federation_reader,federation_sender,frontend_proxy,media_repository,presence,pusher,receipts,to_device,typing,synchrotron,user_dir"
 
     if worker_types_env == "BLOW_IT_UP":
         worker_types_env = "account_data, background_worker, client_reader, client_reader, event_creator, event_persister, event_persister, federation_inbound, federation_reader, federation_reader, federation_sender, federation_sender, federation_sender, frontend_proxy, media_repository, presence, pusher, pusher, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, to_device, typing, user_dir"
