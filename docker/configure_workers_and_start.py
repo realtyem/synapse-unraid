@@ -62,14 +62,12 @@ enable_postgres_exporter = False
 
 WORKERS_CONFIG: Dict[str, Dict[str, Any]] = {
     "pusher": {
-        "app": "synapse.app.generic_worker",
         "listener_resources": [],
         "endpoint_patterns": [],
         "shared_extra_conf": {},
         "worker_extra_conf": "",
     },
     "user_dir": {
-        "app": "synapse.app.generic_worker",
         "listener_resources": ["client"],
         "endpoint_patterns": [
             "^/_matrix/client/(api/v1|r0|v3|unstable)/user_directory/search$"
@@ -78,7 +76,6 @@ WORKERS_CONFIG: Dict[str, Dict[str, Any]] = {
         "worker_extra_conf": "",
     },
     "media_repository": {
-        "app": "synapse.app.generic_worker",
         "listener_resources": ["media"],
         "endpoint_patterns": [
             "^/_matrix/media/",
@@ -92,21 +89,18 @@ WORKERS_CONFIG: Dict[str, Dict[str, Any]] = {
         "worker_extra_conf": "enable_media_repo: true",
     },
     "appservice": {
-        "app": "synapse.app.generic_worker",
         "listener_resources": [],
         "endpoint_patterns": [],
         "shared_extra_conf": {"notify_appservices_from_worker": "appservice1"},
         "worker_extra_conf": "",
     },
     "federation_sender": {
-        "app": "synapse.app.generic_worker",
         "listener_resources": [],
         "endpoint_patterns": [],
         "shared_extra_conf": {},
         "worker_extra_conf": "",
     },
     "synchrotron": {
-        "app": "synapse.app.generic_worker",
         "listener_resources": ["client"],
         "endpoint_patterns": [
             "^/_matrix/client/(v2_alpha|r0|v3)/sync$",
@@ -118,7 +112,6 @@ WORKERS_CONFIG: Dict[str, Dict[str, Any]] = {
         "worker_extra_conf": "",
     },
     "client_reader": {
-        "app": "synapse.app.generic_worker",
         "listener_resources": ["client"],
         "endpoint_patterns": [
             "^/_matrix/client/(api/v1|r0|v3|unstable)/publicRooms$",
@@ -146,7 +139,6 @@ WORKERS_CONFIG: Dict[str, Dict[str, Any]] = {
         "worker_extra_conf": "",
     },
     "federation_reader": {
-        "app": "synapse.app.generic_worker",
         "listener_resources": ["federation"],
         "endpoint_patterns": [
             "^/_matrix/federation/(v1|v2)/event/",
@@ -172,21 +164,18 @@ WORKERS_CONFIG: Dict[str, Dict[str, Any]] = {
         "worker_extra_conf": "",
     },
     "federation_inbound": {
-        "app": "synapse.app.generic_worker",
         "listener_resources": ["federation"],
         "endpoint_patterns": ["/_matrix/federation/(v1|v2)/send/"],
         "shared_extra_conf": {},
         "worker_extra_conf": "",
     },
     "event_persister": {
-        "app": "synapse.app.generic_worker",
         "listener_resources": ["replication"],
         "endpoint_patterns": [],
         "shared_extra_conf": {},
         "worker_extra_conf": "",
     },
     "background_worker": {
-        "app": "synapse.app.generic_worker",
         "listener_resources": [],
         "endpoint_patterns": [],
         # This worker cannot be sharded. Therefore there should only ever be one background
@@ -195,7 +184,6 @@ WORKERS_CONFIG: Dict[str, Dict[str, Any]] = {
         "worker_extra_conf": "",
     },
     "event_creator": {
-        "app": "synapse.app.generic_worker",
         "listener_resources": ["client"],
         "endpoint_patterns": [
             "^/_matrix/client/(api/v1|r0|v3|unstable)/rooms/.*/redact",
@@ -209,7 +197,6 @@ WORKERS_CONFIG: Dict[str, Dict[str, Any]] = {
         "worker_extra_conf": "",
     },
     "frontend_proxy": {
-        "app": "synapse.app.generic_worker",
         "listener_resources": ["client"],
         "endpoint_patterns": ["^/_matrix/client/(api/v1|r0|v3|unstable)/keys/upload"],
         "shared_extra_conf": {},
@@ -219,7 +206,6 @@ WORKERS_CONFIG: Dict[str, Dict[str, Any]] = {
         ),
     },
     "account_data": {
-        "app": "synapse.app.generic_worker",
         "listener_resources": ["client", "replication"],
         "endpoint_patterns": [
             "^/_matrix/client/(r0|v3|unstable)/.*/tags",
@@ -229,14 +215,12 @@ WORKERS_CONFIG: Dict[str, Dict[str, Any]] = {
         "worker_extra_conf": "",
     },
     "presence": {
-        "app": "synapse.app.generic_worker",
         "listener_resources": ["client", "replication"],
         "endpoint_patterns": ["^/_matrix/client/(api/v1|r0|v3|unstable)/presence/"],
         "shared_extra_conf": {},
         "worker_extra_conf": "",
     },
     "receipts": {
-        "app": "synapse.app.generic_worker",
         "listener_resources": ["client", "replication"],
         "endpoint_patterns": [
             "^/_matrix/client/(r0|v3|unstable)/rooms/.*/receipt",
@@ -246,14 +230,12 @@ WORKERS_CONFIG: Dict[str, Dict[str, Any]] = {
         "worker_extra_conf": "",
     },
     "to_device": {
-        "app": "synapse.app.generic_worker",
         "listener_resources": ["client", "replication"],
         "endpoint_patterns": ["^/_matrix/client/(r0|v3|unstable)/sendToDevice/"],
         "shared_extra_conf": {},
         "worker_extra_conf": "",
     },
     "typing": {
-        "app": "synapse.app.generic_worker",
         "listener_resources": ["client", "replication"],
         "endpoint_patterns": [
             "^/_matrix/client/(api/v1|r0|v3|unstable)/rooms/.*/typing"
