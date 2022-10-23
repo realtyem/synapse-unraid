@@ -280,6 +280,13 @@ upstream {upstream_worker_type} {{
 }}
 """
 
+NGINX_UPSTREAM_HASH_BY_CLIENT_IP_CONFIG_BLOCK = """
+upstream {upstream_worker_type} {{
+ip_hash;
+{body}
+}}
+"""
+
 PROMETHEUS_SCRAPE_CONFIG_BLOCK = """
     - targets: ["127.0.0.1:{metrics_port}"]
       labels:
@@ -600,10 +607,17 @@ def generate_worker_files(
             body += "    server localhost:%d;\n" % (port,)
 
         # Add to the list of configured upstreams
-        nginx_upstream_config += NGINX_UPSTREAM_CONFIG_BLOCK.format(
-            upstream_worker_type=upstream_worker_type,
-            body=body,
-        )
+        # Some endpoints should be load-balanced by client IP, use special block for them
+        if worker_type in ("federation_inbound"):
+            nginx_upstream_config += NGINX_UPSTREAM_HASH_BY_CLIENT_IP_CONFIG_BLOCK.format(
+                upstream_worker_type=upstream_worker_type,
+                body=body,
+            )
+        else:
+            nginx_upstream_config += NGINX_UPSTREAM_CONFIG_BLOCK.format(
+                upstream_worker_type=upstream_worker_type,
+                body=body,
+            )
 
     # Setup the metric end point locations, names and indexes
     prom_endpoint_config = ""
