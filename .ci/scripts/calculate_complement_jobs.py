@@ -18,6 +18,7 @@
 import json
 import os
 
+
 def set_output(key: str, value: str):
     # See https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#setting-an-output-parameter
     with open(os.environ["GITHUB_OUTPUT"], "at") as f:
