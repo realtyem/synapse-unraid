@@ -11,8 +11,36 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  prewarm-cache:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Build and push
+        uses: docker/build-push-action@v3
+        with:
+          context: .
+          push: false
+          file: "docker/Dockerfile-unified"
+          tags: "realtyem/synapse:latest"
+          outputs: type=docker,dest=/tmp/synapse-prewarm.tar
+          cache-from: type=gha
+          #cache-to: type=gha,mode=max
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: synapse-prewarm
+          path: /tmp/synapse-prewarm.tar
+
   calculate-test-jobs:
     runs-on: ubuntu-22.04
+    needs: prewarm-cache
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -41,6 +69,10 @@ jobs:
         with:
           path: synapse
 
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
@@ -51,6 +83,28 @@ jobs:
       - name: Prepare Complement's Prerequisites
         run: synapse/.ci/scripts/setup_complement_prerequisites.sh
 
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: synapse-prewarm
+          path: /tmp
+
+      - name: Load image
+        run: |
+          docker load --input /tmp/synapse-prewarm.tar
+          docker image ls -a
+
+      - name: Build Complement
+        uses: docker/build-push-action@v3
+        with:
+          context: ./synapse/docker/complement
+          push: false
+          load: true
+          file: "synapse/docker/complement/Dockerfile"
+          tags: "complement-synapse:latest"
+          # cache-from: type=gha
+          # cache-to: type=gha,mode=max
+
       - shell: bash
         name: Run Complement Tests
         env:
@@ -60,7 +114,7 @@ jobs:
           SYNAPSE_WORKER_TYPES: ${{ matrix.job.worker_types }}
         run: |
           set -o pipefail
-          COMPLEMENT_DIR=`pwd`/complement synapse/scripts-dev/complement-extended.sh -json 2>&1 | synapse/.ci/scripts/gotestfmt
+          COMPLEMENT_DIR=`pwd`/complement synapse/scripts-dev/complement-extended.sh -f -json 2>&1 | synapse/.ci/scripts/gotestfmt
 
   sharding:
     name: "Shards Tests"
@@ -77,6 +131,10 @@ jobs:
         with:
           path: synapse
 
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
@@ -87,6 +145,28 @@ jobs:
       - name: Prepare Complement's Prerequisites
         run: synapse/.ci/scripts/setup_complement_prerequisites.sh
 
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: synapse-prewarm
+          path: /tmp
+
+      - name: Load image
+        run: |
+          docker load --input /tmp/synapse-prewarm.tar
+          docker image ls -a
+
+      - name: Build Complement
+        uses: docker/build-push-action@v3
+        with:
+          context: ./synapse/docker/complement
+          push: false
+          load: true
+          file: "synapse/docker/complement/Dockerfile"
+          tags: "complement-synapse:latest"
+          # cache-from: type=gha
+          # cache-to: type=gha,mode=max
+
       - shell: bash
         name: Run Complement Tests
         env:
@@ -96,7 +176,7 @@ jobs:
           SYNAPSE_WORKER_TYPES: ${{ matrix.job.worker_types }}
         run: |
           set -o pipefail
-          COMPLEMENT_DIR=`pwd`/complement synapse/scripts-dev/complement-extended.sh -json 2>&1 | synapse/.ci/scripts/gotestfmt
+          COMPLEMENT_DIR=`pwd`/complement synapse/scripts-dev/complement-extended.sh -f -json 2>&1 | synapse/.ci/scripts/gotestfmt
 
   stream_writers:
     name: "All Stream Writers"
@@ -113,6 +193,10 @@ jobs:
         with:
           path: synapse
 
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
@@ -123,6 +207,28 @@ jobs:
       - name: Prepare Complement's Prerequisites
         run: synapse/.ci/scripts/setup_complement_prerequisites.sh
 
+      - name: Download artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: synapse-prewarm
+          path: /tmp
+
+      - name: Load image
+        run: |
+          docker load --input /tmp/synapse-prewarm.tar
+          docker image ls -a
+
+      - name: Build Complement
+        uses: docker/build-push-action@v3
+        with:
+          context: ./synapse/docker/complement
+          push: false
+          load: true
+          file: "synapse/docker/complement/Dockerfile"
+          tags: "complement-synapse:latest"
+          # cache-from: type=gha
+          # cache-to: type=gha,mode=max
+
       - shell: bash
         name: Run Complement Tests
         env:
@@ -132,7 +238,7 @@ jobs:
           SYNAPSE_WORKER_TYPES: ${{ matrix.job.worker_types }}
         run: |
           set -o pipefail
-          COMPLEMENT_DIR=`pwd`/complement synapse/scripts-dev/complement-extended.sh -json 2>&1 | synapse/.ci/scripts/gotestfmt
+          COMPLEMENT_DIR=`pwd`/complement synapse/scripts-dev/complement-extended.sh -f -json 2>&1 | synapse/.ci/scripts/gotestfmt
 
 #  nuclear:
 #    name: "Overload GitHub"
@@ -149,6 +255,10 @@ jobs:
 #        with:
 #          path: synapse
 
+#      - name: Set up Docker Buildx
+#        id: buildx
+#        uses: docker/setup-buildx-action@v2
+
 #      - name: Install Rust
 #        uses: actions-rs/toolchain@v1
 #        with:
@@ -158,6 +268,28 @@ jobs:
 #
 #      - name: Prepare Complement's Prerequisites
 #        run: synapse/.ci/scripts/setup_complement_prerequisites.sh
+
+#      - name: Download artifact
+#        uses: actions/download-artifact@v3
+#        with:
+#          name: synapse-prewarm
+#          path: /tmp
+
+#      - name: Load image
+#        run: |
+#          docker load --input /tmp/synapse-prewarm.tar
+#          docker image ls -a
+
+#      - name: Build Complement
+#        uses: docker/build-push-action@v3
+#        with:
+#          context: ./synapse/docker/complement
+#          push: false
+#          load: true
+#          file: "synapse/docker/complement/Dockerfile"
+#          tags: "complement-synapse:latest"
+          # cache-from: type=gha
+          # cache-to: type=gha,mode=max
 
 #      - shell: bash
 #        name: Run Complement Tests
