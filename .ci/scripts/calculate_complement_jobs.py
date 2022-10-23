@@ -16,6 +16,14 @@
 # Copied heavily from calculate_jobs.py to set various complement jobs.
 
 import json
+import os
+
+def set_output(key: str, value: str):
+    # See https://docs.github.com/en/actions/using-workflows/workflow-commands-for-github-actions#setting-an-output-parameter
+    with open(os.environ["GITHUB_OUTPUT"], "at") as f:
+        print(f"{key}={value}", file=f)
+
+
 
 # Calculate the various types of workers.
 #
@@ -85,10 +93,10 @@ print(
 print("::endgroup::")
 
 test_matrix = json.dumps(complement_single_worker_tests)
-print(f"::set-output name=complement_singles_test_matrix::{test_matrix}")
+set_output("complement_singles_test_matrix", test_matrix)
 test_matrix = json.dumps(complement_sharding_worker_tests)
-print(f"::set-output name=complement_sharding_test_matrix::{test_matrix}")
+set_output("complement_sharding_test_matrix", test_matrix)
 test_matrix = json.dumps(complement_stream_writers_worker_tests)
-print(f"::set-output name=complement_stream_writers_test_matrix::{test_matrix}")
+set_output("complement_stream_writers_test_matrix", test_matrix)
 test_matrix = json.dumps(complement_nuclear_worker_tests)
-print(f"::set-output name=complement_nuclear_test_matrix::{test_matrix}")
+set_output("complement_nuclear_test_matrix", test_matrix)
