@@ -609,9 +609,11 @@ def generate_worker_files(
         # Add to the list of configured upstreams
         # Some endpoints should be load-balanced by client IP, use special block for them
         if worker_type in ("federation_inbound"):
-            nginx_upstream_config += NGINX_UPSTREAM_HASH_BY_CLIENT_IP_CONFIG_BLOCK.format(
-                upstream_worker_type=upstream_worker_type,
-                body=body,
+            nginx_upstream_config += (
+                NGINX_UPSTREAM_HASH_BY_CLIENT_IP_CONFIG_BLOCK.format(
+                    upstream_worker_type=upstream_worker_type,
+                    body=body,
+                )
             )
         else:
             nginx_upstream_config += NGINX_UPSTREAM_CONFIG_BLOCK.format(
