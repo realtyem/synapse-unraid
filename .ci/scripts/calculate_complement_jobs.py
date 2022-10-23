@@ -56,7 +56,7 @@ complement_sharding_worker_tests = [
     {"worker_types": "event_persister, event_persister"},
     {"worker_types": "federation_sender, federation_sender"},
     {"worker_types": "pusher, pusher"},
-    {"worker_types": "synchrotron, synchrotron"},
+    {"worker_types": "federation_inbound, federation_inbound"},
 ]
 
 complement_stream_writers_worker_tests = [
