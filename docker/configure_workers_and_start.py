@@ -282,7 +282,7 @@ upstream {upstream_worker_type} {{
 
 NGINX_UPSTREAM_HASH_BY_CLIENT_IP_CONFIG_BLOCK = """
 upstream {upstream_worker_type} {{
-ip_hash;
+    ip_hash;
 {body}
 }}
 """
