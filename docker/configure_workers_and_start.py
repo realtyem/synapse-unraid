@@ -288,6 +288,13 @@ upstream {upstream_worker_type} {{
 }}
 """
 
+NGINX_UPSTREAM_HASH_BY_AUTH_HEADER_BLOCK = """
+upstream {upstream_worker_type} {{
+    hash $http_authorization;
+{body}
+}}
+"""
+
 PROMETHEUS_SCRAPE_CONFIG_BLOCK = """
     - targets: ["127.0.0.1:{metrics_port}"]
       labels:
@@ -612,6 +619,13 @@ def generate_worker_files(
         if worker_type in ("federation_inbound"):
             nginx_upstream_config += (
                 NGINX_UPSTREAM_HASH_BY_CLIENT_IP_CONFIG_BLOCK.format(
+                    upstream_worker_type=upstream_worker_type,
+                    body=body,
+                )
+            )
+        elif worker_type in ("synchrotron"):
+            nginx_upstream_config += (
+                NGINX_UPSTREAM_HASH_BY_AUTH_HEADER_BLOCK.format(
                     upstream_worker_type=upstream_worker_type,
                     body=body,
                 )
