@@ -624,12 +624,11 @@ def generate_worker_files(
                 )
             )
         elif worker_type in ("synchrotron"):
-            nginx_upstream_config += (
-                NGINX_UPSTREAM_HASH_BY_AUTH_HEADER_BLOCK.format(
-                    upstream_worker_type=upstream_worker_type,
-                    body=body,
-                )
+            nginx_upstream_config += NGINX_UPSTREAM_HASH_BY_AUTH_HEADER_BLOCK.format(
+                upstream_worker_type=upstream_worker_type,
+                body=body,
             )
+
         else:
             nginx_upstream_config += NGINX_UPSTREAM_CONFIG_BLOCK.format(
                 upstream_worker_type=upstream_worker_type,
