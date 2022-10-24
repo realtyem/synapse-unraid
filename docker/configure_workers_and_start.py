@@ -283,7 +283,7 @@ upstream {upstream_worker_type} {{
 
 NGINX_UPSTREAM_HASH_BY_CLIENT_IP_CONFIG_BLOCK = """
 upstream {upstream_worker_type} {{
-    hash $http_x_forwarded_for;
+    hash $proxy_add_x_forwarded_for;
 {body}
 }}
 """
