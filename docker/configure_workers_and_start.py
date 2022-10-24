@@ -663,13 +663,20 @@ def generate_worker_files(
 
     workers_in_use = len(worker_types) > 0
 
+    # Override this value here, so it will work as expected in enable_redis below
+    if workers_in_use is True:
+        os.environ["SYNAPSE_ENABLE_REDIS"] = "True"
+
     # Shared homeserver config
     convert(
         "/conf/shared.yaml.j2",
         "/conf/workers/shared.yaml",
         shared_worker_config=yaml.dump(shared_config),
         appservice_registrations=appservice_registrations,
-        enable_redis=workers_in_use,
+        enable_redis=os.environ.get("SYNAPSE_ENABLE_REDIS", "False"),
+        redis_host=os.environ.get("SYNAPSE_REDIS_HOST", "localhost"),
+        redis_port=os.environ.get("SYNAPSE_REDIS_PORT", "6379"),
+        redis_password=os.environ.get("SYNAPSE_REDIS_PASSWORD", ""),
         workers_in_use=workers_in_use,
     )
 
@@ -798,6 +805,7 @@ def main(args: List[str], environ: MutableMapping[str, str]) -> None:
         getenv_bool("SYNAPSE_SERVE_SERVER_WELLKNOWN", False)
     )
     environ["SYNAPSE_EMAIL"] = str(getenv_bool("SYNAPSE_EMAIL", False))
+    environ["SYNAPSE_ENABLE_REDIS"] = str(getenv_bool("SYNAPSE_ENABLE_REDIS", False))
     if enable_coturn is True:
         if "SYNAPSE_TURN_SECRET" not in environ:
             log("Generating a random secret for SYNAPSE_TURN_SECRET")
