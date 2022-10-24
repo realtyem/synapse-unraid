@@ -25,7 +25,6 @@ def set_output(key: str, value: str):
         print(f"{key}={value}", file=f)
 
 
-
 # Calculate the various types of workers.
 #
 # For each type of test we only run on Py3.10
