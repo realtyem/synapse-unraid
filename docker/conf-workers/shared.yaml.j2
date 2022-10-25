@@ -2,18 +2,10 @@
 # as part of ./Dockerfile-workers.
 # configure_workers_and_start.py uses and amends to this file depending on the workers
 # that have been selected.
-# Don't bother hand editing this file directly, unless you know what you are doing. Changes
-# will not be saved between container rebuilds or image updates. Settings which are
-# currently auto-genenerated end up here and override changes made to homeserver.yaml,
-# which does not get changed between.
-# TLDR: settings in this file override settings in homeserver.yaml.
 
 {% if enable_redis %}
 redis:
     enabled: true
-    host: {{ redis_host }}
-    port: {{ redis_port }}
-    password: {{ redis_password }}
 {% endif %}
 
 {% if appservice_registrations is not none %}
