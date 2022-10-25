@@ -175,7 +175,7 @@ WORKERS_CONFIG: Dict[str, Dict[str, Any]] = {
     "federation_inbound": {
         "app": "synapse.app.generic_worker",
         "listener_resources": ["federation"],
-        "endpoint_patterns": ["/_matrix/federation/(v1|v2)/send/"],
+        "endpoint_patterns": ["^/_matrix/federation/(v1|v2)/send/"],
         "shared_extra_conf": {},
         "worker_extra_conf": "",
     },
