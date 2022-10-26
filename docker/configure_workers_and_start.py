@@ -89,7 +89,10 @@ WORKERS_CONFIG: Dict[str, Dict[str, Any]] = {
             "^/_synapse/admin/v1/quarantine_media/.*$",
         ],
         # The first configured media worker will run the media background jobs
-        "shared_extra_conf": {"enable_media_repo": False, "media_instance_running_background_jobs": "media_repository1"},
+        "shared_extra_conf": {
+            "enable_media_repo": False,
+            "media_instance_running_background_jobs": "media_repository1",
+        },
         "worker_extra_conf": "enable_media_repo: true",
     },
     "appservice": {
