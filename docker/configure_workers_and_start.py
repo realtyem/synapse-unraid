@@ -445,6 +445,7 @@ def generate_worker_files(
     # the auto compressor is taken care of in main
     global enable_prometheus
     global enable_redis_exporter
+    enable_manhole_workers = getenv_bool("SYNAPSE_MANHOLE_WORKERS", False)
 
     # First read the original config file and extract the listeners block. Then we'll add
     # another listener for replication. Later we'll write out the result to the shared
@@ -516,6 +517,9 @@ def generate_worker_files(
     # Start worker metrics port from this arbitrary port
     worker_metrics_port = 19009
 
+    # Start worker manhole ports from this port
+    worker_manhole_port = 17009
+
     # A counter of worker_type -> int. Used for determining the name for a given
     # worker type when generating its config file, as each worker's name is just
     # worker_type + instance #
@@ -546,6 +550,8 @@ def generate_worker_files(
                 "type": worker_type,
                 "port": str(worker_port),
                 "metrics_port": str(worker_metrics_port),
+                "enable_manhole_workers": str(enable_manhole_workers),
+                "manhole_port": str(worker_manhole_port),
                 "config_path": config_path,
                 "index": str(new_worker_count),
             }
@@ -596,6 +602,7 @@ def generate_worker_files(
 
         worker_port += 1
         worker_metrics_port += 1
+        worker_manhole_port += 1
 
     # Build the nginx location config blocks
     nginx_location_config = ""

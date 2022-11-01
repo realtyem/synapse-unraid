@@ -24,6 +24,10 @@ worker_listeners:
   - type: metrics
     port: {{ metrics_port }}
 {% endif %}
+{% if enable_manhole_workers == "True" %}
+  - type: manhole
+    port: {{ manhole_port }}
+{% endif %}
 
 worker_log_config: {{ worker_log_config_filepath }}
 
