@@ -14,14 +14,12 @@
 # limitations under the License.
 import logging
 import sys
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List
 
-from twisted.internet import address
 from twisted.web.resource import Resource
 
 import synapse
 import synapse.events
-from synapse.api.errors import HttpResponseException, RequestSendFailed, SynapseError
 from synapse.api.urls import (
     CLIENT_API_PREFIX,
     FEDERATION_PREFIX,
@@ -43,8 +41,7 @@ from synapse.config.logger import setup_logging
 from synapse.config.server import ListenerConfig
 from synapse.federation.transport.server import TransportLayerServer
 from synapse.http.server import JsonResource, OptionsResource
-from synapse.http.servlet import RestServlet, parse_json_object_from_request
-from synapse.http.site import SynapseRequest, SynapseSite
+from synapse.http.site import SynapseSite
 from synapse.logging.context import LoggingContext
 from synapse.metrics import METRICS_PREFIX, MetricsResource, RegistryProxy
 from synapse.replication.http import REPLICATION_PREFIX, ReplicationRestResource
@@ -76,7 +73,6 @@ from synapse.rest.client import (
     versions,
     voip,
 )
-from synapse.rest.client._base import client_patterns
 from synapse.rest.client.account import ThreepidRestServlet, WhoamiRestServlet
 from synapse.rest.client.devices import DevicesRestServlet
 from synapse.rest.client.keys import (
@@ -123,7 +119,6 @@ from synapse.storage.databases.main.tags import TagsWorkerStore
 from synapse.storage.databases.main.transactions import TransactionWorkerStore
 from synapse.storage.databases.main.ui_auth import UIAuthWorkerStore
 from synapse.storage.databases.main.user_directory import UserDirectoryStore
-from synapse.types import JsonDict
 from synapse.util import SYNAPSE_VERSION
 from synapse.util.httpresourcetree import create_resource_tree
 
