@@ -464,6 +464,20 @@ def generate_worker_files(
         if original_listeners:
             listeners += original_listeners
 
+    # Only activate the manhole if the environment says to do so. SYNAPSE_MANHOLE_MASTER
+    if getenv_bool("SYNAPSE_MANHOLE_MASTER", False):
+        # The manhole listener is basically the same as other listeners. Needs a type "manhole".
+        # The workers have ports starting with 17009, so we'll take one just prior to that. In
+        # practice, we don't need to bind address because we are in docker and are not going
+        # to expose this outside.
+        manhole_listener = [
+            {
+                "type": "manhole",
+                "port": 17008,
+            }
+        ]
+        listeners += manhole_listener
+
     # The shared homeserver config. The contents of which will be inserted into the
     # base shared worker jinja2 template.
     #
