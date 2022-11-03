@@ -307,143 +307,6 @@ class DeviceWorkerHandler:
             "self_signing_key": self_signing_key,
         }
 
-    @trace
-    @measure_func("notify_device_update")
-    async def notify_device_update(
-        self, user_id: str, device_ids: Collection[str]
-    ) -> None:
-        """Notify that a user's device(s) has changed. Pokes the notifier, and
-        remote servers if the user is local.
-
-        Args:
-            user_id: The Matrix ID of the user who's device list has been updated.
-            device_ids: The device IDs that have changed.
-        """
-        if not device_ids:
-            # No changes to notify about, so this is a no-op.
-            return
-
-        room_ids = await self.store.get_rooms_for_user(user_id)
-
-        position = await self.store.add_device_change_to_streams(
-            user_id,
-            device_ids,
-            room_ids=room_ids,
-        )
-
-        if not position:
-            # This should only happen if there are no updates, so we bail.
-            return
-
-        for device_id in device_ids:
-            logger.debug(
-                "Notifying about update %r/%r, ID: %r", user_id, device_id, position
-            )
-
-        # specify the user ID too since the user should always get their own device list
-        # updates, even if they aren't in any rooms.
-        self.notifier.on_new_event(
-            StreamKeyType.DEVICE_LIST, position, users={user_id}, rooms=room_ids
-        )
-
-        # We may need to do some processing asynchronously for local user IDs.
-        if self.hs.is_mine_id(user_id):
-            self._handle_new_device_update_async()
-
-    @wrap_as_background_process("_handle_new_device_update_async")
-    async def _handle_new_device_update_async(self) -> None:
-        """Called when we have a new local device list update that we need to
-        send out over federation.
-
-        This happens in the background so as not to block the original request
-        that generated the device update.
-        """
-        if self._handle_new_device_update_is_processing:
-            self._handle_new_device_update_new_data = True
-            return
-
-        self._handle_new_device_update_is_processing = True
-
-        # The stream ID we processed previous iteration (if any), and the set of
-        # hosts we've already poked about for this update. This is so that we
-        # don't poke the same remote server about the same update repeatedly.
-        current_stream_id = None
-        hosts_already_sent_to: Set[str] = set()
-
-        try:
-            while True:
-                self._handle_new_device_update_new_data = False
-                rows = await self.store.get_uncoverted_outbound_room_pokes()
-                if not rows:
-                    # If the DB returned nothing then there is nothing left to
-                    # do, *unless* a new device list update happened during the
-                    # DB query.
-                    if self._handle_new_device_update_new_data:
-                        continue
-                    else:
-                        return
-
-                for user_id, device_id, room_id, stream_id, opentracing_context in rows:
-                    hosts = set()
-
-                    # Ignore any users that aren't ours
-                    if self.hs.is_mine_id(user_id):
-                        hosts = set(
-                            await self._storage_controllers.state.get_current_hosts_in_room_or_partial_state_approximation(
-                                room_id
-                            )
-                        )
-                        hosts.discard(self.server_name)
-                        # For rooms with partial state, `hosts` is merely an
-                        # approximation. When we transition to a full state room, we
-                        # will have to send out device list updates to any servers we
-                        # missed.
-
-                    # Check if we've already sent this update to some hosts
-                    if current_stream_id == stream_id:
-                        hosts -= hosts_already_sent_to
-
-                    await self.store.add_device_list_outbound_pokes(
-                        user_id=user_id,
-                        device_id=device_id,
-                        room_id=room_id,
-                        stream_id=stream_id,
-                        hosts=hosts,
-                        context=opentracing_context,
-                    )
-
-                    # Notify replication that we've updated the device list stream.
-                    self.notifier.notify_replication()
-
-                    if hosts:
-                        logger.info(
-                            "Sending device list update notif for %r to: %r",
-                            user_id,
-                            hosts,
-                        )
-                        for host in hosts:
-                            self.federation_sender.send_device_messages(
-                                host, immediate=False
-                            )
-                            # TODO: when called, this isn't in a logging context.
-                            # This leads to log spam, sentry event spam, and massive
-                            # memory usage.
-                            # See https://github.com/matrix-org/synapse/issues/12552.
-                            # log_kv(
-                            #     {"message": "sent device update to host", "host": host}
-                            # )
-
-                    if current_stream_id != stream_id:
-                        # Clear the set of hosts we've already sent to as we're
-                        # processing a new update.
-                        hosts_already_sent_to.clear()
-
-                    hosts_already_sent_to.update(hosts)
-                    current_stream_id = stream_id
-
-        finally:
-            self._handle_new_device_update_is_processing = False
-
     async def handle_room_un_partial_stated(self, room_id: str) -> None:
         """Handles sending appropriate device list updates in a room that has
         gone from partial to full state.
@@ -654,6 +517,49 @@ class DeviceHandler(DeviceWorkerHandler):
             else:
                 raise
 
+    @trace
+    @measure_func("notify_device_update")
+    async def notify_device_update(
+        self, user_id: str, device_ids: Collection[str]
+    ) -> None:
+        """Notify that a user's device(s) has changed. Pokes the notifier, and
+        remote servers if the user is local.
+
+        Args:
+            user_id: The Matrix ID of the user who's device list has been updated.
+            device_ids: The device IDs that have changed.
+        """
+        if not device_ids:
+            # No changes to notify about, so this is a no-op.
+            return
+
+        room_ids = await self.store.get_rooms_for_user(user_id)
+
+        position = await self.store.add_device_change_to_streams(
+            user_id,
+            device_ids,
+            room_ids=room_ids,
+        )
+
+        if not position:
+            # This should only happen if there are no updates, so we bail.
+            return
+
+        for device_id in device_ids:
+            logger.debug(
+                "Notifying about update %r/%r, ID: %r", user_id, device_id, position
+            )
+
+        # specify the user ID too since the user should always get their own device list
+        # updates, even if they aren't in any rooms.
+        self.notifier.on_new_event(
+            StreamKeyType.DEVICE_LIST, position, users={user_id}, rooms=room_ids
+        )
+
+        # We may need to do some processing asynchronously for local user IDs.
+        if self.hs.is_mine_id(user_id):
+            self._handle_new_device_update_async()
+
     async def notify_user_signature_update(
         self, from_user_id: str, user_ids: List[str]
     ) -> None:
@@ -754,6 +660,100 @@ class DeviceHandler(DeviceWorkerHandler):
         await self.notify_device_update(user_id, [old_device_id, device_id])
 
         return {"success": True}
+
+    @wrap_as_background_process("_handle_new_device_update_async")
+    async def _handle_new_device_update_async(self) -> None:
+        """Called when we have a new local device list update that we need to
+        send out over federation.
+
+        This happens in the background so as not to block the original request
+        that generated the device update.
+        """
+        if self._handle_new_device_update_is_processing:
+            self._handle_new_device_update_new_data = True
+            return
+
+        self._handle_new_device_update_is_processing = True
+
+        # The stream ID we processed previous iteration (if any), and the set of
+        # hosts we've already poked about for this update. This is so that we
+        # don't poke the same remote server about the same update repeatedly.
+        current_stream_id = None
+        hosts_already_sent_to: Set[str] = set()
+
+        try:
+            while True:
+                self._handle_new_device_update_new_data = False
+                rows = await self.store.get_uncoverted_outbound_room_pokes()
+                if not rows:
+                    # If the DB returned nothing then there is nothing left to
+                    # do, *unless* a new device list update happened during the
+                    # DB query.
+                    if self._handle_new_device_update_new_data:
+                        continue
+                    else:
+                        return
+
+                for user_id, device_id, room_id, stream_id, opentracing_context in rows:
+                    hosts = set()
+
+                    # Ignore any users that aren't ours
+                    if self.hs.is_mine_id(user_id):
+                        hosts = set(
+                            await self._storage_controllers.state.get_current_hosts_in_room_or_partial_state_approximation(
+                                room_id
+                            )
+                        )
+                        hosts.discard(self.server_name)
+                        # For rooms with partial state, `hosts` is merely an
+                        # approximation. When we transition to a full state room, we
+                        # will have to send out device list updates to any servers we
+                        # missed.
+
+                    # Check if we've already sent this update to some hosts
+                    if current_stream_id == stream_id:
+                        hosts -= hosts_already_sent_to
+
+                    await self.store.add_device_list_outbound_pokes(
+                        user_id=user_id,
+                        device_id=device_id,
+                        room_id=room_id,
+                        stream_id=stream_id,
+                        hosts=hosts,
+                        context=opentracing_context,
+                    )
+
+                    # Notify replication that we've updated the device list stream.
+                    self.notifier.notify_replication()
+
+                    if hosts:
+                        logger.info(
+                            "Sending device list update notif for %r to: %r",
+                            user_id,
+                            hosts,
+                        )
+                        for host in hosts:
+                            self.federation_sender.send_device_messages(
+                                host, immediate=False
+                            )
+                            # TODO: when called, this isn't in a logging context.
+                            # This leads to log spam, sentry event spam, and massive
+                            # memory usage.
+                            # See https://github.com/matrix-org/synapse/issues/12552.
+                            # log_kv(
+                            #     {"message": "sent device update to host", "host": host}
+                            # )
+
+                    if current_stream_id != stream_id:
+                        # Clear the set of hosts we've already sent to as we're
+                        # processing a new update.
+                        hosts_already_sent_to.clear()
+
+                    hosts_already_sent_to.update(hosts)
+                    current_stream_id = stream_id
+
+        finally:
+            self._handle_new_device_update_is_processing = False
 
     async def handle_room_un_partial_stated(self, room_id: str) -> None:
         """Handles sending appropriate device list updates in a room that has
