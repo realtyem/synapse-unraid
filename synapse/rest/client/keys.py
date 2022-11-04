@@ -27,6 +27,7 @@ from synapse.http.servlet import (
 )
 from synapse.http.site import SynapseRequest
 from synapse.logging.opentracing import log_kv, set_tag
+from synapse.replication.http.devices import ReplicationUploadKeysForUserRestServlet
 from synapse.rest.client._base import client_patterns, interactive_auth_handler
 from synapse.types import JsonDict, StreamToken
 from synapse.util.cancellation import cancellable
@@ -70,6 +71,10 @@ class KeyUploadServlet(RestServlet):
         self.auth = hs.get_auth()
         self.e2e_keys_handler = hs.get_e2e_keys_handler()
         self.device_handler = hs.get_device_handler()
+        self._is_master = hs.config.worker.worker_app is None
+
+        if not self._is_master:
+            self.key_uploader = ReplicationUploadKeysForUserRestServlet.make_client(hs)
 
     async def on_POST(
         self, request: SynapseRequest, device_id: Optional[str]
@@ -109,9 +114,13 @@ class KeyUploadServlet(RestServlet):
                 400, "To upload keys, you must pass device_id when authenticating"
             )
 
-        result = await self.e2e_keys_handler.upload_keys_for_user(
-            user_id, device_id, body
-        )
+        if self._is_master:
+            result = await self.e2e_keys_handler.upload_keys_for_user(
+                user_id, device_id, body
+            )
+        else:
+            result = self.key_uploader(user_id, device_id, body)
+
         return 200, result
 
 

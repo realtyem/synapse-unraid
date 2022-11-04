@@ -78,5 +78,40 @@ class ReplicationUserDevicesResyncRestServlet(ReplicationEndpoint):
         return 200, user_devices
 
 
+class ReplicationUploadKeysForUserRestServlet(ReplicationEndpoint):
+    """Ask master to upload keys for the user and send them out over federation to
+    update other servers.
+
+    This must happen on master so that the results can be correctly cached in
+    the database and streamed to workers.( Is this accurate?)
+
+    Calls to e2e_keys_handler.upload_keys_for_user(user_id, device_id, body) on
+    master to accomplish this.
+    """
+
+    NAME = "upload_keys_for_user"
+    PATH_ARGS = ("user_id",)
+    CACHE = False
+
+    def __init__(self, hs: "HomeServer"):
+        super().__init__(hs)
+
+        self.e2e_keys_handler = hs.get_e2e_keys_handler()
+        self.store = hs.get_datastores().main
+        self.clock = hs.get_clock()
+
+    @staticmethod
+    async def _serialize_payload(user_id: str) -> JsonDict:  # type: ignore[override]
+        return {}
+
+    async def _handle_request(  # type: ignore[override]
+        self, user_id: str, device_id: str, body: JsonDict
+    ) -> Tuple[int, JsonDict]:
+        results = await self.e2e_keys_handler.upload_keys_for_user(user_id, device_id, body)
+
+        return 200, results
+
+
 def register_servlets(hs: "HomeServer", http_server: HttpServer) -> None:
     ReplicationUserDevicesResyncRestServlet(hs).register(http_server)
+    ReplicationUploadKeysForUserRestServlet(hs).register(http_server)
