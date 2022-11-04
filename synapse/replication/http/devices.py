@@ -101,8 +101,15 @@ class ReplicationUploadKeysForUserRestServlet(ReplicationEndpoint):
         self.clock = hs.get_clock()
 
     @staticmethod
-    async def _serialize_payload(user_id: str) -> JsonDict:  # type: ignore[override]
-        return {}
+    async def _serialize_payload(
+        user_id: str, device_id: str, body: JsonDict
+    ) -> JsonDict:  # type: ignore[override]
+
+        return {
+            "user_id": user_id,
+            "device_id": device_id,
+            "body": body,
+        }
 
     async def _handle_request(  # type: ignore[override]
         self, user_id: str, device_id: str, body: JsonDict
