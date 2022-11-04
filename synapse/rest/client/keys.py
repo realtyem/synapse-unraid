@@ -119,7 +119,9 @@ class KeyUploadServlet(RestServlet):
                 user_id, device_id, body
             )
         else:
-            result = self.key_uploader(user_id, device_id, body)
+            result = self.key_uploader(
+            user_id=user_id, device_id=device_id, body=body
+            )
 
         return 200, result
 
