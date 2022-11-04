@@ -107,7 +107,9 @@ class ReplicationUploadKeysForUserRestServlet(ReplicationEndpoint):
     async def _handle_request(  # type: ignore[override]
         self, user_id: str, device_id: str, body: JsonDict
     ) -> Tuple[int, JsonDict]:
-        results = await self.e2e_keys_handler.upload_keys_for_user(user_id, device_id, body)
+        results = await self.e2e_keys_handler.upload_keys_for_user(
+            user_id, device_id, body
+        )
 
         return 200, results
 
