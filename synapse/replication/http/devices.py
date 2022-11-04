@@ -101,9 +101,9 @@ class ReplicationUploadKeysForUserRestServlet(ReplicationEndpoint):
         self.clock = hs.get_clock()
 
     @staticmethod
-    async def _serialize_payload(
+    async def _serialize_payload( # type: ignore[override]
         user_id: str, device_id: str, body: JsonDict
-    ) -> JsonDict:  # type: ignore[override]
+    ) -> JsonDict:
 
         return {
             "user_id": user_id,
@@ -111,9 +111,14 @@ class ReplicationUploadKeysForUserRestServlet(ReplicationEndpoint):
             "body": body,
         }
 
-    async def _handle_request(  # type: ignore[override]
-        self, user_id: str, device_id: str, body: JsonDict
+    async def _handle_request( # type: ignore[override]
+        self, request: SynapseRequest, user_id: str
     ) -> Tuple[int, JsonDict]:
+        content = parse_json_object_from_request(request)
+
+        device_id = content["device_id"]
+        body = content["body"]
+
         results = await self.e2e_keys_handler.upload_keys_for_user(
             user_id, device_id, body
         )
