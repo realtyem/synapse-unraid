@@ -60,6 +60,12 @@ enable_prometheus = False
 enable_redis_exporter = False
 enable_postgres_exporter = False
 
+# Workers with exposed endpoints needs either "client", "federation", or "media" listener_resources
+# Watching /_matrix/client needs a "client" listener
+# Watching /_matrix/federation needs a "federation" listener
+# Watching /_matrix/media and related needs a "media" listener
+# Stream Writers require "client" and "replication" listeners because they
+#   have to attach by instance_map to the master process and have client endpoints.
 WORKERS_CONFIG: Dict[str, Dict[str, Any]] = {
     "pusher": {
         "app": "synapse.app.generic_worker",
@@ -354,7 +360,7 @@ def getenv_bool(name: str, default: bool = False) -> bool:
     return os.getenv(name, str(default)).lower() in ("yes", "y", "true", "1", "t", "on")
 
 
-def add_sharding_to_shared_config(
+def add_worker_roles_to_shared_config(
     shared_config: dict,
     worker_type: str,
     worker_name: str,
@@ -392,14 +398,15 @@ def add_sharding_to_shared_config(
             "port": worker_port,
         }
 
-    elif worker_type in ("account_data", "presence", "receipts", "to_device", "typing"):
-        # Account data writes to the account_data stream, so we need to update
-        # the list of stream writers
+    elif worker_type in ["account_data", "presence", "receipts", "to_device", "typing"]:
+        # Update the list of stream writers
+        # It's convienent that the name of the worker type is the same as the event stream
         shared_config.setdefault("stream_writers", {}).setdefault(
             worker_type, []
         ).append(worker_name)
 
         # Map of stream writer instance names to host/ports combos
+        # For now, all stream writers need http replication ports
         instance_map[worker_name] = {
             "host": "localhost",
             "port": worker_port,
@@ -580,7 +587,7 @@ def generate_worker_files(
         worker_type_total_count = worker_types.count(worker_type)
 
         # Update the shared config with sharding-related options if necessary
-        add_sharding_to_shared_config(
+        add_worker_roles_to_shared_config(
             shared_config, worker_type, worker_name, worker_port
         )
 
