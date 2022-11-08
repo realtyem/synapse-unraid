@@ -103,13 +103,13 @@ class ReplicationUploadKeysForUserRestServlet(ReplicationEndpoint):
 
     @staticmethod
     async def _serialize_payload(  # type: ignore[override]
-        user_id: str, device_id: str, body: JsonDict
+        user_id: str, device_id: str, keys: JsonDict
     ) -> JsonDict:
 
         return {
             "user_id": user_id,
             "device_id": device_id,
-            "body": body,
+            "keys": keys,
         }
 
     async def _handle_request(  # type: ignore[override]
@@ -119,10 +119,10 @@ class ReplicationUploadKeysForUserRestServlet(ReplicationEndpoint):
 
         user_id = content["user_id"]
         device_id = content["device_id"]
-        body = content["body"]
+        keys = content["keys"]
 
         results = await self.e2e_keys_handler.upload_keys_for_user(
-            user_id, device_id, body
+            user_id, device_id, keys
         )
 
         return 200, results

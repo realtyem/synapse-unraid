@@ -71,9 +71,12 @@ class KeyUploadServlet(RestServlet):
         self.auth = hs.get_auth()
         self.e2e_keys_handler = hs.get_e2e_keys_handler()
         self.device_handler = hs.get_device_handler()
-        self._is_master = hs.config.worker.worker_app is None
 
-        if not self._is_master:
+        if hs.config.worker.worker_app is None:
+            # if main process
+            self.key_uploader = self.e2e_keys_handler.upload_keys_for_user
+        else:
+            # then a worker
             self.key_uploader = ReplicationUploadKeysForUserRestServlet.make_client(hs)
 
     async def on_POST(
@@ -114,14 +117,9 @@ class KeyUploadServlet(RestServlet):
                 400, "To upload keys, you must pass device_id when authenticating"
             )
 
-        if self._is_master:
-            result = await self.e2e_keys_handler.upload_keys_for_user(
-                user_id, device_id, body
-            )
-        else:
-            result = await self.key_uploader(
-                user_id=user_id, device_id=device_id, body=body
-            )
+        result = await self.key_uploader(
+            user_id=user_id, device_id=device_id, keys=body
+        )
 
         return 200, result
 
