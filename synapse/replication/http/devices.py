@@ -91,7 +91,7 @@ class ReplicationUploadKeysForUserRestServlet(ReplicationEndpoint):
     """
 
     NAME = "upload_keys_for_user"
-    # PATH_ARGS = ("user_id",)
+    PATH_ARGS = ()
     CACHE = False
 
     def __init__(self, hs: "HomeServer"):
