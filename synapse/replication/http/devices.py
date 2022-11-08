@@ -91,7 +91,7 @@ class ReplicationUploadKeysForUserRestServlet(ReplicationEndpoint):
     """
 
     NAME = "upload_keys_for_user"
-    PATH_ARGS = ("user_id",)
+    # PATH_ARGS = ("user_id",)
     CACHE = False
 
     def __init__(self, hs: "HomeServer"):
@@ -113,7 +113,7 @@ class ReplicationUploadKeysForUserRestServlet(ReplicationEndpoint):
         }
 
     async def _handle_request(  # type: ignore[override]
-        self, request: Request, user_id: str
+        self, request: Request
     ) -> Tuple[int, JsonDict]:
         content = parse_json_object_from_request(request)
 
