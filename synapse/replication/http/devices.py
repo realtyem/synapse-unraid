@@ -117,6 +117,7 @@ class ReplicationUploadKeysForUserRestServlet(ReplicationEndpoint):
     ) -> Tuple[int, JsonDict]:
         content = parse_json_object_from_request(request)
 
+        user_id = content["user_id"]
         device_id = content["device_id"]
         body = content["body"]
 
