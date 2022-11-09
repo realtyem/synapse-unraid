@@ -46,7 +46,7 @@ if not IS_PR:
             "database": "sqlite",
             "extras": "all",
         }
-        for version in ("3.8", "3.9", "3.11")
+        for version in ("3.8", "3.9")
     )
 
 
