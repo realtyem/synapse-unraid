@@ -20,7 +20,7 @@
 #   * SYNAPSE_SERVER_NAME: The desired server_name of the homeserver.
 #   * SYNAPSE_REPORT_STATS: Whether to report stats.
 #   * SYNAPSE_WORKER_TYPES: A comma separated list of worker names as specified in WORKER_CONFIG
-#         below. Leave empty for no workers, or set to '*' for all possible workers.
+#         below. Leave empty for no workers.
 #   * SYNAPSE_AS_REGISTRATION_DIR: If specified, a directory in which .yaml and .yml files
 #         will be treated as Application Service registration files.
 #   * SYNAPSE_TLS_CERT: Path to a TLS certificate in PEM format.
@@ -367,7 +367,7 @@ def add_worker_roles_to_shared_config(
     worker_port: int,
 ) -> None:
     """Given a dictionary representing a config file shared across all workers,
-    append sharded worker information to it for the current worker_type instance.
+    append appropriate worker information to it for the current worker_type instance.
 
     Args:
         shared_config: The config dict that all worker instances share (after being converted to YAML)
@@ -400,7 +400,7 @@ def add_worker_roles_to_shared_config(
 
     elif worker_type in ["account_data", "presence", "receipts", "to_device", "typing"]:
         # Update the list of stream writers
-        # It's convienent that the name of the worker type is the same as the event stream
+        # It's convenient that the name of the worker type is the same as the stream to write
         shared_config.setdefault("stream_writers", {}).setdefault(
             worker_type, []
         ).append(worker_name)
@@ -556,8 +556,7 @@ def generate_worker_files(
         if worker_config:
             worker_config = worker_config.copy()
         else:
-            log(worker_type + " is an unknown worker type! It will be ignored")
-            continue
+            error(worker_type + " is an unknown worker type! Please fix!")
 
         new_worker_count = worker_type_counter.setdefault(worker_type, 0) + 1
         worker_type_counter[worker_type] = new_worker_count
