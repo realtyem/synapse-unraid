@@ -201,7 +201,7 @@ jobs:
   trial:
     if: ${{ !cancelled() && !failure() }} # Allow previous steps to be skipped, but not fail
     needs: calculate-test-jobs
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         job: ${{ fromJson(needs.calculate-test-jobs.outputs.trial_test_matrix) }}
