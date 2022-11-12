@@ -388,7 +388,10 @@ class GenericWorkerServer(HomeServer):
                     resources[SERVER_KEY_PREFIX] = KeyResource(self)
 
                 if name == "replication":
+                    start_replication_listening = time.time()
                     resources[REPLICATION_PREFIX] = ReplicationRestResource(self)
+                    end_replication_listening = time.time()
+                    logger.error("TIMING start_replication_listening %.6f", end_replication_listening - start_replication_listening)
 
         # Attach additional resources registered by modules.
         resources.update(self._module_web_resources)
