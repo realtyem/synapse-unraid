@@ -263,6 +263,7 @@ class SynapseHomeServer(HomeServer):
         return resources
 
     def start_listening(self) -> None:
+        start_listening = time.time()
         if self.config.redis.redis_enabled:
             # If redis is enabled we connect via the replication command handler
             # in the same way as the workers (since we're effectively a client
@@ -298,6 +299,8 @@ class SynapseHomeServer(HomeServer):
                 # during parsing
                 logger.warning("Unrecognized listener type: %s", listener.type)
 
+        end_listening = time.time()
+        logger.error("TIMING start_listening %.6f", end_listening - start_listening)
 
 def setup(config_options: List[str]) -> SynapseHomeServer:
     """

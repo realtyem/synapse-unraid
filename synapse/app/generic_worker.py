@@ -414,7 +414,7 @@ class GenericWorkerServer(HomeServer):
         logger.info("Synapse worker now listening on port %d", port)
 
     def start_listening(self) -> None:
-        start = time.time()
+        start_listening = time.time()
         for listener in self.config.worker.worker_listeners:
             if listener.type == "http":
                 self._listen_http(listener)
@@ -440,13 +440,14 @@ class GenericWorkerServer(HomeServer):
             else:
                 logger.warning("Unsupported listener type: %s", listener.type)
 
-        end = time.time()
-        logger.error("TIMING start_listening %.6f", end - start)
+        end_listening = time.time()
+        logger.error("TIMING start_listening %.6f", end_listening - start_listening)
 
         self.get_replication_command_handler().start_replication(self)
 
 
 def start(config_options: List[str]) -> None:
+    start = time.time()
     try:
         config = HomeServerConfig.load_config("Synapse worker", config_options)
     except ConfigError as e:
@@ -503,6 +504,9 @@ def start(config_options: List[str]) -> None:
     # redirect stdio to the logs, if configured.
     if not hs.config.logging.no_redirect_stdio:
         redirect_stdio_to_logs()
+
+    end = time.time()
+    logger.error("TIMING start %.6f", end - start)
 
     _base.start_worker_reactor("synapse-generic-worker", config)
 
