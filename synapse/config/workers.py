@@ -293,6 +293,12 @@ class WorkerConfig(Config):
         self.start_pushers = self.instance_name in pusher_instances
         self.pusher_shard_config = ShardedWorkerHandlingConfig(pusher_instances)
 
+        # whether to enable the media repository endpoints. This should be set
+        # to false if the media repository is running as a separate endpoint;
+        # doing so ensures that we will not run cache cleanup jobs on the
+        # master, potentially causing inconsistency.
+        self.enable_media_repo = config.get("enable_media_repo", False)
+
         # Whether this worker should run background tasks or not.
         #
         # As a note for developers, the background tasks guarded by this should
