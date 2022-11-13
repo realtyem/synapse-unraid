@@ -297,7 +297,8 @@ class WorkerConfig(Config):
         # to false if the media repository is running as a separate endpoint;
         # doing so ensures that we will not run cache cleanup jobs on the
         # master, potentially causing inconsistency.
-        self.enable_media_repo = config.get("enable_media_repo", False)
+
+        self.enable_media_repo = config.get("enable_media_repo", self.worker_name is None)
 
         # Whether this worker should run background tasks or not.
         #
