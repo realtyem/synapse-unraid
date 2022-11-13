@@ -125,6 +125,9 @@ class ContentRepositoryConfig(Config):
         ):
             self.can_load_media_repo = False
             return
+        elif (self.root.worker.enable_media_repo is True):
+            logger.debug("HIT THE WORKER PATH ON ENABLE MEDIA REPO")
+            self.can_load_media_repo = True
         else:
             self.can_load_media_repo = True
 
