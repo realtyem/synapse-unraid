@@ -119,7 +119,7 @@ class ContentRepositoryConfig(Config):
 
         # Only enable the media repo if either the media repo is enabled or the
         # current worker app is the media repo.
-        if (self.root.worker.enable_media_repo is True):
+        if self.root.worker.enable_media_repo is True:
             logger.debug("HIT THE WORKER PATH ON ENABLE MEDIA REPO")
             self.can_load_media_repo = True
         else:
