@@ -125,7 +125,7 @@ class ContentRepositoryConfig(Config):
         ):
             self.can_load_media_repo = False
             return
-        elif (self.root.worker.enable_media_repo is False):
+        elif self.root.worker.enable_media_repo is False:
             self.can_load_media_repo = False
             return
         else:
