@@ -169,45 +169,6 @@ class WorkerConfig(Config):
                 )
             )
 
-        # Handle federation sender configuration.
-        #
-        # There are two ways of configuring which instances handle federation
-        # sending:
-        #   1. The old way where "send_federation" is set to false and running a
-        #      `synapse.app.federation_sender` worker app.
-        #   2. Specifying the workers sending federation in
-        #      `federation_sender_instances`.
-        #
-
-        send_federation = config.get("send_federation", True)
-
-        federation_sender_instances = config.get("federation_sender_instances")
-        if federation_sender_instances is None:
-            # Default to an empty list, which means "another, unknown, worker is
-            # responsible for it".
-            federation_sender_instances = []
-
-            # If no federation sender instances are set we check if
-            # `send_federation` is set, which means use master
-            if send_federation:
-                federation_sender_instances = ["master"]
-
-            if self.worker_app == "synapse.app.federation_sender":
-                if send_federation:
-                    # If we're running federation senders, and not using
-                    # `federation_sender_instances`, then we should have
-                    # explicitly set `send_federation` to false.
-                    raise ConfigError(
-                        _FEDERATION_SENDER_WITH_SEND_FEDERATION_ENABLED_ERROR
-                    )
-
-                federation_sender_instances = [self.worker_name]
-
-        self.send_federation = self.instance_name in federation_sender_instances
-        self.federation_shard_config = ShardedWorkerHandlingConfig(
-            federation_sender_instances
-        )
-
         # A map from instance name to host/port of their HTTP replication endpoint.
         instance_map = config.get("instance_map") or {}
         self.instance_map = {
@@ -268,8 +229,48 @@ class WorkerConfig(Config):
             self.writers.events
         )
 
+        # Handle federation sender configuration.
+        #
+        # There are two ways of configuring which instances handle federation
+        # sending:
+        #   1. The old way where "send_federation" is set to false and running a
+        #      `synapse.app.federation_sender` worker app.
+        #   2. Specifying the workers sending federation in
+        #      `federation_sender_instances`.
+        #
+
+        send_federation = config.get("send_federation", True)
+
+        federation_sender_instances = config.get("federation_sender_instances")
+        if federation_sender_instances is None:
+            # Default to an empty list, which means "another, unknown, worker is
+            # responsible for it".
+            federation_sender_instances = []
+
+            # If no federation sender instances are set we check if
+            # `send_federation` is set, which means use master
+            if send_federation:
+                federation_sender_instances = ["master"]
+
+            if self.worker_app == "synapse.app.federation_sender":
+                if send_federation:
+                    # If we're running federation senders, and not using
+                    # `federation_sender_instances`, then we should have
+                    # explicitly set `send_federation` to false.
+                    raise ConfigError(
+                        _FEDERATION_SENDER_WITH_SEND_FEDERATION_ENABLED_ERROR
+                    )
+
+                federation_sender_instances = [self.worker_name]
+
+        self.send_federation = self.worker_name in federation_sender_instances
+        self.federation_shard_config = ShardedWorkerHandlingConfig(
+            federation_sender_instances
+        )
+
         # Handle sharded push
         start_pushers = config.get("start_pushers", True)
+
         pusher_instances = config.get("pusher_instances")
         if pusher_instances is None:
             # Default to an empty list, which means "another, unknown, worker is
@@ -288,9 +289,9 @@ class WorkerConfig(Config):
                     # `start_pushers` to false.
                     raise ConfigError(_PUSHER_WITH_START_PUSHERS_ENABLED_ERROR)
 
-                pusher_instances = [self.instance_name]
+                pusher_instances = [self.worker_name]
 
-        self.start_pushers = self.instance_name in pusher_instances
+        self.start_pushers = self.worker_name in pusher_instances
         self.pusher_shard_config = ShardedWorkerHandlingConfig(pusher_instances)
 
         # whether to enable the media repository endpoints. This should be set
