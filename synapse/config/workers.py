@@ -251,58 +251,29 @@ class WorkerConfig(Config):
         #   2. Specifying the workers sending federation in
         #      `federation_sender_instances`.
         #
+        # The logic for pushers is virtually identical, and it has been abstracted
+        # into a separate function, '_worker_name_performing_this_duty()'
 
-        send_federation = config.get("send_federation", True)
-
-        federation_sender_instances = config.get("federation_sender_instances")
-        if federation_sender_instances is None:
-            # Default to an empty list, which means "another, unknown, worker is
-            # responsible for it".
-            federation_sender_instances = []
-
-            # If no federation sender instances are set we check if
-            # `send_federation` is set, which means use master
-            if send_federation:
-                federation_sender_instances = ["master"]
-
-            if self.worker_app == "synapse.app.federation_sender":
-                if send_federation:
-                    # If we're running federation senders, and not using
-                    # `federation_sender_instances`, then we should have
-                    # explicitly set `send_federation` to false.
-                    raise ConfigError(
-                        _FEDERATION_SENDER_WITH_SEND_FEDERATION_ENABLED_ERROR
-                    )
-
-                federation_sender_instances = [self.worker_name]
-
+        federation_sender_instances = self._worker_name_performing_this_duty(
+            config,
+            "send_federation",
+            "synapse.app.federation_sender",
+            "federation_sender_instances",
+            _FEDERATION_SENDER_WITH_SEND_FEDERATION_ENABLED_ERROR,
+        )
         self.send_federation = self.instance_name in federation_sender_instances
         self.federation_shard_config = ShardedWorkerHandlingConfig(
             federation_sender_instances
         )
 
         # Handle sharded push
-        start_pushers = config.get("start_pushers", True)
-        pusher_instances = config.get("pusher_instances")
-        if pusher_instances is None:
-            # Default to an empty list, which means "another, unknown, worker is
-            # responsible for it".
-            pusher_instances = []
-
-            # If no pushers instances are set we check if `start_pushers` is
-            # set, which means use master
-            if start_pushers:
-                pusher_instances = ["master"]
-
-            if self.worker_app == "synapse.app.pusher":
-                if start_pushers:
-                    # If we're running pushers, and not using
-                    # `pusher_instances`, then we should have explicitly set
-                    # `start_pushers` to false.
-                    raise ConfigError(_PUSHER_WITH_START_PUSHERS_ENABLED_ERROR)
-
-                pusher_instances = [self.instance_name]
-
+        pusher_instances = self._worker_name_performing_this_duty(
+            config,
+            "start_pushers",
+            "synapse.app.pusher",
+            "pusher_instances",
+            _PUSHER_WITH_START_PUSHERS_ENABLED_ERROR,
+        )
         self.start_pushers = self.instance_name in pusher_instances
         self.pusher_shard_config = ShardedWorkerHandlingConfig(pusher_instances)
 
@@ -424,6 +395,48 @@ class WorkerConfig(Config):
         # either is True.
         # (By this point, these are either the same value or only one is not None.)
         return bool(new_option_should_run_here or legacy_option_should_run_here)
+
+    def _worker_name_performing_this_duty(
+        self,
+        config: Dict[str, Any],
+        legacy_option_name: str,
+        legacy_app_name: str,
+        modern_instance_map_name: str,
+        error_message: str,
+    ) -> List[str]:
+        """
+        retrieves the name of the worker handling a given duty, by either legacy option or instance_map
+
+        config: settings read from yaml.
+        legacy_option_name: the old way of enabling options. e.g. 'start_pushers'
+        legacy_app_name: The historical app name. e.g. 'synapse.app.pusher'
+        modern_instance_map_name: the string name of the new instance_map. e.g. 'pusher_instances'
+        error_message: An error message to pass to ConfigError that is raised.
+        """
+
+        legacy_option = config.get(legacy_option_name, True)
+
+        worker_instance_map = config.get(modern_instance_map_name)
+        if worker_instance_map is None:
+            # Default to an empty list, which means "another, unknown, worker is
+            # responsible for it".
+            worker_instance_map = []
+
+            # If no worker instances are set we check if
+            # `legacy_option_name` is set, which means use master
+            if legacy_option:
+                worker_instance_map = ["master"]
+
+            if self.worker_app == legacy_app_name:
+                if legacy_option:
+                    # If we're using `legacy_app_name`, and not using
+                    # `modern_instance_map_name`, then we should have
+                    # explicitly set `legacy_option_name` to false.
+                    raise ConfigError(error_message)
+
+                worker_instance_map = [self.worker_name]
+
+        return worker_instance_map
 
     def read_arguments(self, args: argparse.Namespace) -> None:
         # We support a bunch of command line arguments that override options in
