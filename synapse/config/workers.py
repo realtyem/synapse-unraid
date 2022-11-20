@@ -43,13 +43,6 @@ synapse process before they can be run in a separate worker.
 Please add ``start_pushers: false`` to the main config
 """
 
-_WORKER_WITH_LEGACY_OPTION_ENABLED_ERROR = """
-The '%s' config option must be disabled in the main
-synapse process before they can be run in a separate worker.
-
-Please add ``%s: false`` to the main config
-"""
-
 _DEPRECATED_WORKER_DUTY_OPTION_USED = """
 The '%s' configuration option is deprecated and will be removed in a future
 Synapse version. Please use ``%s: name_of_worker`` instead.
@@ -409,7 +402,6 @@ class WorkerConfig(Config):
         legacy_option_name: str,
         legacy_app_name: str,
         modern_instance_map_name: str,
-        error_message: str,
     ) -> List[str]:
         """
         retrieves the name of the worker handling a given duty, by either legacy option or instance_map
@@ -418,7 +410,6 @@ class WorkerConfig(Config):
         legacy_option_name: the old way of enabling options. e.g. 'start_pushers'
         legacy_app_name: The historical app name. e.g. 'synapse.app.pusher'
         modern_instance_map_name: the string name of the new instance_map. e.g. 'pusher_instances'
-        error_message: An error message to pass to ConfigError that is raised.
         """
 
         legacy_option = config.get(legacy_option_name, True)
@@ -443,7 +434,7 @@ class WorkerConfig(Config):
                         f"The '{legacy_option_name}' config option must be disabled in "
                         "the main synapse process before they can be run in a separate "
                         "worker.\n"
-                        f"Please add ``{legacy_option_name}: false`` to the main config.\n",
+                        f"Please add `{legacy_option_name}: false` to the main config.\n",
                     )
 
                 worker_instance_map = [self.worker_name]
