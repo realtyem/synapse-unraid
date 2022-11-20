@@ -120,7 +120,7 @@ class ContentRepositoryConfig(Config):
         # Set the default, then all we have to do is disable it.
         self.can_load_media_repo = True
         # Only disable the media repo if it is explicitly disabled in yaml.
-        if self.root.server.enable_media_repo is False:
+        if self.root.worker.enable_media_repo is False:
             # However, if we are still using the legacy app name on this instance,
             # it needs to stay enabled.
             if config.get("worker_app") == "synapse.app.media_repository":
