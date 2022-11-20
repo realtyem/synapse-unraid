@@ -259,7 +259,6 @@ class WorkerConfig(Config):
             "send_federation",
             "synapse.app.federation_sender",
             "federation_sender_instances",
-            _FEDERATION_SENDER_WITH_SEND_FEDERATION_ENABLED_ERROR,
         )
         self.send_federation = self.instance_name in federation_sender_instances
         self.federation_shard_config = ShardedWorkerHandlingConfig(
@@ -272,7 +271,6 @@ class WorkerConfig(Config):
             "start_pushers",
             "synapse.app.pusher",
             "pusher_instances",
-            _PUSHER_WITH_START_PUSHERS_ENABLED_ERROR,
         )
         self.start_pushers = self.instance_name in pusher_instances
         self.pusher_shard_config = ShardedWorkerHandlingConfig(pusher_instances)
