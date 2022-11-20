@@ -440,8 +440,10 @@ class WorkerConfig(Config):
                     # `modern_instance_map_name`, then we should have
                     # explicitly set `legacy_option_name` to false.
                     raise ConfigError(
-                        _WORKER_WITH_LEGACY_OPTION_ENABLED_ERROR,
-                        (legacy_option_name,),
+                        f"The '{legacy_option_name}' config option must be disabled in "
+                        "the main synapse process before they can be run in a separate "
+                        "worker.\n"
+                        f"Please add ``{legacy_option_name}: false`` to the main config.\n",
                     )
 
                 worker_instance_map = [self.worker_name]
