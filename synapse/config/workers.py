@@ -441,8 +441,7 @@ class WorkerConfig(Config):
                     # explicitly set `legacy_option_name` to false.
                     raise ConfigError(
                         _WORKER_WITH_LEGACY_OPTION_ENABLED_ERROR,
-                        legacy_option_name,
-                        legacy_option_name,
+                        (legacy_option_name,),
                     )
 
                 worker_instance_map = [self.worker_name]
