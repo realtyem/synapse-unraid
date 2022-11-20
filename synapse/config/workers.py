@@ -43,6 +43,13 @@ synapse process before they can be run in a separate worker.
 Please add ``start_pushers: false`` to the main config
 """
 
+_WORKER_WITH_LEGACY_OPTION_ENABLED_ERROR = """
+The '%s' config option must be disabled in the main
+synapse process before they can be run in a separate worker.
+
+Please add ``%s: false`` to the main config
+"""
+
 _DEPRECATED_WORKER_DUTY_OPTION_USED = """
 The '%s' configuration option is deprecated and will be removed in a future
 Synapse version. Please use ``%s: name_of_worker`` instead.
@@ -432,7 +439,11 @@ class WorkerConfig(Config):
                     # If we're using `legacy_app_name`, and not using
                     # `modern_instance_map_name`, then we should have
                     # explicitly set `legacy_option_name` to false.
-                    raise ConfigError(error_message)
+                    raise ConfigError(
+                        _WORKER_WITH_LEGACY_OPTION_ENABLED_ERROR,
+                        legacy_option_name,
+                        legacy_option_name,
+                    )
 
                 worker_instance_map = [self.worker_name]
 
