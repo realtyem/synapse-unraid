@@ -333,6 +333,12 @@ class WorkerConfig(Config):
             new_option_name="update_user_directory_from_worker",
         )
 
+        # whether to enable the media repository endpoints. This should be set
+        # to false if the media repository is running as a separate endpoint;
+        # doing so ensures that we will not run cache cleanup jobs on the
+        # master, potentially causing inconsistency.
+        self.enable_media_repo = config.get("enable_media_repo", True)
+
     def _should_this_worker_perform_duty(
         self,
         config: Dict[str, Any],
