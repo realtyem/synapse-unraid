@@ -630,7 +630,7 @@ An example for a federation sender instance:
 ### `synapse.app.media_repository`
 
 **Deprecated as of Synapse v1.xx.** [Use `synapse.app.generic_worker` with the
-`enable_media_repo: true` option instead.](#notifying-application-services)
+`enable_media_repo: true` option instead.](#media-repository)
 
 Handles the media repository. It can handle all endpoints starting with:
 
