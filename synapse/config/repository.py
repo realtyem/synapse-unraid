@@ -131,9 +131,11 @@ class ContentRepositoryConfig(Config):
                 return
 
         # Whether this instance should be the one to run the background jobs to
-        # e.g clean up old URL previews.
+        # e.g. clean up old URL previews. "master" here is the same as what is returned
+        # by 'hs.get_instance_name()' when on the main process.
         self.media_instance_running_background_jobs = config.get(
             "media_instance_running_background_jobs",
+            "master",
         )
 
         self.max_upload_size = self.parse_size(config.get("max_upload_size", "50M"))
