@@ -121,14 +121,8 @@ class ContentRepositoryConfig(Config):
         self.can_load_media_repo = True
         # Only disable the media repo if it is explicitly disabled in yaml.
         if self.root.worker.enable_media_repo is False:
-            # However, if we are still using the legacy app name on this instance,
-            # it needs to stay enabled.
-            if config.get("worker_app") == "synapse.app.media_repository":
-                # This is our backwards compatibility bypass
-                self.can_load_media_repo = True
-            else:
-                self.can_load_media_repo = False
-                return
+            self.can_load_media_repo = False
+            return
 
         # Whether this instance should be the one to run the background jobs to
         # e.g. clean up old URL previews. "master" here is the same as what is returned
