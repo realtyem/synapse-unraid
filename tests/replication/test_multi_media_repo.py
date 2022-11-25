@@ -51,7 +51,6 @@ class MediaRepoShardTestCase(BaseMultiWorkerStreamTestCase):
 
     def default_config(self):
         conf = super().default_config()
-        conf["enable_media_repo"] = False
         conf["federation_custom_ca_list"] = [get_test_ca_cert_file()]
         return conf
 
