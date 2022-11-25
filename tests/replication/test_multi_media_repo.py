@@ -125,7 +125,13 @@ class MediaRepoShardTestCase(BaseMultiWorkerStreamTestCase):
 
     def test_basic(self):
         """Test basic fetching of remote media from a single worker."""
-        hs1 = self.make_worker_hs("synapse.app.media_repository")
+        hs1 = self.make_worker_hs(
+            "synapse.app.generic_worker",
+            {
+                "worker_name": "media1",
+                "media_repository_instances": ["medai1", "media2"],
+            },
+        )
 
         channel, request = self._get_media_req(hs1, "example.com:443", "ABC123")
 
@@ -144,10 +150,18 @@ class MediaRepoShardTestCase(BaseMultiWorkerStreamTestCase):
         same time works.
         """
         hs1 = self.make_worker_hs(
-            "synapse.app.media_repository", {"worker_name": "media1"}
+            "synapse.app.generic_worker",
+            {
+                "worker_name": "media1",
+                "media_repository_instances": ["medai1", "media2"],
+            },
         )
         hs2 = self.make_worker_hs(
-            "synapse.app.media_repository", {"worker_name": "media2"}
+            "synapse.app.generic_worker",
+            {
+                "worker_name": "media2",
+                "media_repository_instances": ["medai1", "media2"],
+            },
         )
 
         start_count = self._count_remote_media()
@@ -189,10 +203,18 @@ class MediaRepoShardTestCase(BaseMultiWorkerStreamTestCase):
         This checks that races generating thumbnails are handled correctly.
         """
         hs1 = self.make_worker_hs(
-            "synapse.app.media_repository", {"worker_name": "media1"}
+            "synapse.app.generic_worker",
+            {
+                "worker_name": "media1",
+                "media_repository_instances": ["medai1", "media2"],
+            },
         )
         hs2 = self.make_worker_hs(
-            "synapse.app.media_repository", {"worker_name": "media2"}
+            "synapse.app.generic_worker",
+            {
+                "worker_name": "media2",
+                "media_repository_instances": ["medai1", "media2"],
+            },
         )
 
         start_count = self._count_remote_thumbnails()
