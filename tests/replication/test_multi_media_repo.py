@@ -143,8 +143,12 @@ class MediaRepoShardTestCase(BaseMultiWorkerStreamTestCase):
         """Test that fetching remote media from two different processes at the
         same time works.
         """
-        hs1 = self.make_worker_hs("synapse.app.media_repository", {"worker_name": "media1"})
-        hs2 = self.make_worker_hs("synapse.app.media_repository", {"worker_name": "media2"})
+        hs1 = self.make_worker_hs(
+            "synapse.app.media_repository", {"worker_name": "media1"}
+        )
+        hs2 = self.make_worker_hs(
+            "synapse.app.media_repository", {"worker_name": "media2"}
+        )
 
         start_count = self._count_remote_media()
 
@@ -184,8 +188,12 @@ class MediaRepoShardTestCase(BaseMultiWorkerStreamTestCase):
 
         This checks that races generating thumbnails are handled correctly.
         """
-        hs1 = self.make_worker_hs("synapse.app.media_repository", {"worker_name": "media1"})
-        hs2 = self.make_worker_hs("synapse.app.media_repository", {"worker_name": "media2"})
+        hs1 = self.make_worker_hs(
+            "synapse.app.media_repository", {"worker_name": "media1"}
+        )
+        hs2 = self.make_worker_hs(
+            "synapse.app.media_repository", {"worker_name": "media2"}
+        )
 
         start_count = self._count_remote_thumbnails()
 
