@@ -842,12 +842,11 @@ class DeviceWorkerStore(RoomMemberWorkerStore, EndToEndKeyWorkerStore):
                 user_ids, from_key
             )
 
-        if not user_ids_to_check:
+        # If an empty set was returned, there's nothing to do.
+        if user_ids_to_check is not None and not user_ids_to_check:
             return set()
 
         def _get_users_whose_devices_changed_txn(txn: LoggingTransaction) -> Set[str]:
-            changes: Set[str] = set()
-
             stream_id_where_clause = "stream_id > ?"
             sql_args = [from_key]
 
@@ -858,19 +857,25 @@ class DeviceWorkerStore(RoomMemberWorkerStore, EndToEndKeyWorkerStore):
             sql = f"""
                 SELECT DISTINCT user_id FROM device_lists_stream
                 WHERE {stream_id_where_clause}
-                AND
             """
 
-            # Query device changes with a batch of users at a time
-            # Assertion for mypy's benefit; see also
-            # https://mypy.readthedocs.io/en/stable/common_issues.html#narrowing-and-inner-functions
-            assert user_ids_to_check is not None
-            for chunk in batch_iter(user_ids_to_check, 100):
-                clause, args = make_in_list_sql_clause(
-                    txn.database_engine, "user_id", chunk
-                )
-                txn.execute(sql + clause, sql_args + args)
-                changes.update(user_id for user_id, in txn)
+            # If the stream change cache gave us no information, fetch *all*
+            # users between the stream IDs.
+            if user_ids_to_check is None:
+                txn.execute(sql, sql_args)
+                return {user_id for user_id, in txn}
+
+            # Otherwise, fetch changes for the given users.
+            else:
+                changes: Set[str] = set()
+
+                # Query device changes with a batch of users at a time
+                for chunk in batch_iter(user_ids_to_check, 100):
+                    clause, args = make_in_list_sql_clause(
+                        txn.database_engine, "user_id", chunk
+                    )
+                    txn.execute(sql + " AND " + clause, sql_args + args)
+                    changes.update(user_id for user_id, in txn)
 
             return changes
 
@@ -1533,70 +1538,6 @@ class DeviceBackgroundUpdateStore(SQLBaseStore):
 
         return rows
 
-    async def check_too_many_devices_for_user(self, user_id: str) -> Collection[str]:
-        """Check if the user has a lot of devices, and if so return the set of
-        devices we can prune.
-
-        This does *not* return hidden devices or devices with E2E keys.
-        """
-
-        num_devices = await self.db_pool.simple_select_one_onecol(
-            table="devices",
-            keyvalues={"user_id": user_id, "hidden": False},
-            retcol="COALESCE(COUNT(*), 0)",
-            desc="count_devices",
-        )
-
-        # We let users have up to ten devices without pruning.
-        if num_devices <= 10:
-            return ()
-
-        # We prune everything older than N days.
-        max_last_seen = self._clock.time_msec() - 14 * 24 * 60 * 60 * 1000
-
-        if num_devices > 50:
-            # If the user has more than 50 devices, then we chose a last seen
-            # that ensures we keep at most 50 devices.
-            sql = """
-                SELECT last_seen FROM devices
-                WHERE
-                    user_id = ?
-                    AND NOT hidden
-                    AND last_seen IS NOT NULL
-                    AND key_json IS NULL
-                ORDER BY last_seen DESC
-                LIMIT 1
-                OFFSET 50
-            """
-
-            rows = await self.db_pool.execute(
-                "check_too_many_devices_for_user_last_seen", None, sql, (user_id,)
-            )
-            if rows:
-                max_last_seen = max(rows[0][0], max_last_seen)
-
-        # Now fetch the devices to delete.
-        sql = """
-            SELECT DISTINCT device_id FROM devices
-            LEFT JOIN e2e_device_keys_json USING (user_id, device_id)
-            WHERE
-                user_id = ?
-                AND NOT hidden
-                AND last_seen < ?
-                AND key_json IS NULL
-        """
-
-        def check_too_many_devices_for_user_txn(
-            txn: LoggingTransaction,
-        ) -> Collection[str]:
-            txn.execute(sql, (user_id, max_last_seen))
-            return {device_id for device_id, in txn}
-
-        return await self.db_pool.runInteraction(
-            "check_too_many_devices_for_user",
-            check_too_many_devices_for_user_txn,
-        )
-
 
 class DeviceStore(DeviceWorkerStore, DeviceBackgroundUpdateStore):
     # Because we have write access, this will be a StreamIdGenerator
@@ -1655,7 +1596,6 @@ class DeviceStore(DeviceWorkerStore, DeviceBackgroundUpdateStore):
                 values={},
                 insertion_values={
                     "display_name": initial_device_display_name,
-                    "last_seen": self._clock.time_msec(),
                     "hidden": False,
                 },
                 desc="store_device",
@@ -1701,7 +1641,7 @@ class DeviceStore(DeviceWorkerStore, DeviceBackgroundUpdateStore):
             )
             raise StoreError(500, "Problem storing device.")
 
-    async def delete_devices(self, user_id: str, device_ids: Collection[str]) -> None:
+    async def delete_devices(self, user_id: str, device_ids: List[str]) -> None:
         """Deletes several devices.
 
         Args:
