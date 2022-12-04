@@ -231,6 +231,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: sudo apt-get -qq install xmlsec1
+      - run: echo ${PWD}
       - name: Set up PostgreSQL ${{ matrix.job.postgres-version }}
         if: ${{ matrix.job.postgres-version }}
         run: |
