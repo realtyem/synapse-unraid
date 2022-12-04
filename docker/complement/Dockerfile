@@ -34,11 +34,23 @@ FROM $FROM
     # We also initialize the database at build time, rather than runtime, so that it's faster to spin up the image.
     RUN gosu postgres initdb --locale=C --encoding=UTF-8 --auth-host password
 
+    RUN echo "ALTER SYSTEM SET max_connections = '100'" | gosu postgres postgres --single
+    RUN echo "ALTER SYSTEM SET shared_buffers = '1792MB'" | gosu postgres postgres --single
+    RUN echo "ALTER SYSTEM SET effective_cache_size = '5376MB'" | gosu postgres postgres --single
+    RUN echo "ALTER SYSTEM SET maintenance_work_mem = '448MB'" | gosu postgres postgres --single
+    RUN echo "ALTER SYSTEM SET checkpoint_completion_target = '0.9'" | gosu postgres postgres --single
+    RUN echo "ALTER SYSTEM SET wal_buffers = '16MB'" | gosu postgres postgres --single
+    RUN echo "ALTER SYSTEM SET default_statistics_target = '100'" | gosu postgres postgres --single
+    RUN echo "ALTER SYSTEM SET random_page_cost = '1.1'" | gosu postgres postgres --single
+    RUN echo "ALTER SYSTEM SET effective_io_concurrency = '200'" | gosu postgres postgres --single
+    RUN echo "ALTER SYSTEM SET work_mem = '9175kB'" | gosu postgres postgres --single
+    RUN echo "ALTER SYSTEM SET min_wal_size = '1GB'" | gosu postgres postgres --single
+    RUN echo "ALTER SYSTEM SET max_wal_size = '4GB'" | gosu postgres postgres --single
+
     # Configure a password and create a database for Synapse
     RUN echo "ALTER USER postgres PASSWORD 'somesecret'" | gosu postgres postgres --single
     RUN echo "CREATE DATABASE synapse" | gosu postgres postgres --single
 
-    RUN /conf/github-postgres.sh
     # Extend the shared homeserver config to disable rate-limiting,
     # set Complement's static shared secret, enable registration, amongst other
     # tweaks to get Synapse ready for testing.
