@@ -255,7 +255,7 @@ COPY --from=realtyem/synapse-tools:latest /out /
 COPY ./docker/start.py ./docker/configure_workers_and_start.py /
 
 # Various config and script templates.
-COPY ./docker/conf ./docker/conf-workers ./.ci/github-postgres.sh /conf/
+COPY ./docker/conf ./docker/conf-workers /conf/
 
 # Copy a script to prefix log lines with the supervisor program name
 COPY ./docker/prefix-log /usr/local/bin/
