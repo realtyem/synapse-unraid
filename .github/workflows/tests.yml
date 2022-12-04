@@ -235,9 +235,12 @@ jobs:
         if: ${{ matrix.job.postgres-version }}
         run: |
           docker run -d -p 5432:5432 \
+            --tmpfs /var/lib/postgresql:rw,size=6144m \
+            --mount 'type=bind,src=/var/run/postgresql,dst=/var/run/postgresql' \
+            --mount 'type=bind,src=/home/runner/work/synapse-unraid/synapse-unraid/.ci/postgresql.conf,dst=/etc/postgres.conf' \
             -e POSTGRES_PASSWORD=postgres \
             -e POSTGRES_INITDB_ARGS="--lc-collate C --lc-ctype C --encoding UTF8" \
-            postgres:${{ matrix.job.postgres-version }}
+            postgres:${{ matrix.job.postgres-version }} -c /etc/postgres.conf
 
       - name: Install Rust
         # There don't seem to be versioned releases of this action per se: for each rust
