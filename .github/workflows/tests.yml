@@ -589,6 +589,9 @@ jobs:
           # cache-from: type=gha
           # cache-to: type=gha,mode=max
 
+      - run: sudo mkdir -p /var/lib/postgresql/data
+      - run: sudo mount -F tmpfs -o size=6144m /var/lib/postgresql/data
+      - run: ls -la /var/lib/postgresql
       - name: Build Complement
         uses: docker/build-push-action@v3
         with:
