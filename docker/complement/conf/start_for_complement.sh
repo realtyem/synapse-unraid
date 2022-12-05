@@ -25,7 +25,7 @@ case "$SYNAPSE_COMPLEMENT_DATABASE" in
     # Set postgres authentication details which will be placed in the homeserver config file
     export POSTGRES_PASSWORD=somesecret
     export POSTGRES_USER=postgres
-    export POSTGRES_HOST=/var/run/postgresql
+    export POSTGRES_HOST="${POSTGRES_HOST:-localhost}"
 
     # configure supervisord to start postgres
     export START_POSTGRES=true
