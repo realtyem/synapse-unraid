@@ -198,13 +198,11 @@ class PreviewUrlResource(DirectServeJsonResource):
 
         self._oembed = OEmbedProvider(hs)
 
-        # We run the background jobs if we're the instance specified (or no
-        # instance is specified, where we assume there is only one instance
-        # serving media).
+        # We run the background jobs if we're the instance specified (or the main
+        # process if this was declared explicitly in a settings file).
         instance_running_jobs = hs.config.media.media_instance_running_background_jobs
         self._worker_run_media_background_jobs = (
-            instance_running_jobs is None
-            or instance_running_jobs == hs.get_instance_name()
+            instance_running_jobs == hs.get_instance_name()
         )
 
         self.url_preview_url_blacklist = hs.config.media.url_preview_url_blacklist

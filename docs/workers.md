@@ -503,6 +503,66 @@ This style of configuration supersedes the legacy `synapse.app.appservice`
 worker application type.
 
 
+### Media Repository
+
+You can designate a single or multiple generic workers to handle media requests and storage.
+Handles the following REST endpoints:
+```
+    /_matrix/media/
+```
+... and the following regular expressions matching media-specific administration APIs:
+```
+    ^/_synapse/admin/v1/purge_media_cache$
+    ^/_synapse/admin/v1/room/.*/media.*$
+    ^/_synapse/admin/v1/user/.*/media.*$
+    ^/_synapse/admin/v1/media/.*$
+    ^/_synapse/admin/v1/quarantine_media/.*$
+    ^/_synapse/admin/v1/users/.*/media$
+```
+You should set `enable_media_repo: True` in the worker specific configuration, and
+[`enable_media_repo: False`](usage/configuration/config_documentation.md#enable_media_repo)
+in the shared configuration file to stop the main synapse process from running
+functions related to the media repository. Note that doing so will prevent the main
+process from being able to handle the above endpoints.
+
+In the `media_repository` worker configuration file, configure the
+[HTTP listener](usage/configuration/config_documentation.md#listeners) to
+expose the `media` resource. For example:
+
+```yaml
+worker_app: synapse.app.generic_worker
+worker_name: media-repository-1
+
+# The replication listener on the main synapse process.
+worker_replication_host: 127.0.0.1
+worker_replication_http_port: 9093
+
+worker_listeners:
+  - type: http
+    port: 8085
+    resources:
+      - names: [media]
+
+worker_log_config: /etc/matrix-synapse/media-worker-log.yaml
+enable_media_repo: True
+
+```
+
+If running multiple media repositories they must be on the same server and you should
+configure a single instance in the shared configuration to run the background tasks.
+Without this set, the background processes will run on the main process. e.g.:
+
+```yaml
+media_instance_running_background_jobs: "media-repository-1"
+```
+
+You may also be interested in investigating the
+[`media_retention`](usage/configuration/config_documentation.md#media_retention) settings.
+
+*Note that if a reverse proxy is used , then `/_matrix/media/` must be routed for both
+inbound client and federation requests (if they are handled separately).*
+
+
 ### `synapse.app.pusher`
 
 It is likely this option will be deprecated in the future and is not recommended for new
@@ -576,6 +636,9 @@ An example for a federation sender instance:
 ```
 
 ### `synapse.app.media_repository`
+
+**Deprecated as of Synapse v1.xx.** [Use `synapse.app.generic_worker` with the
+`enable_media_repo: true` option instead.](#media-repository)
 
 Handles the media repository. It can handle all endpoints starting with:
 

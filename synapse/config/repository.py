@@ -117,21 +117,25 @@ class ContentRepositoryConfig(Config):
 
     def read_config(self, config: JsonDict, **kwargs: Any) -> None:
 
-        # Only enable the media repo if either the media repo is enabled or the
-        # current worker app is the media repo.
-        if (
-            self.root.server.enable_media_repo is False
-            and config.get("worker_app") != "synapse.app.media_repository"
-        ):
-            self.can_load_media_repo = False
-            return
-        else:
-            self.can_load_media_repo = True
+        # Set the default, then all we have to do is disable it.
+        self.can_load_media_repo = True
+        # Only disable the media repo if it is explicitly disabled in yaml.
+        if self.root.worker.enable_media_repo is False:
+            # However, if we are still using the legacy app name on this instance,
+            # it needs to stay enabled.
+            if config.get("worker_app") == "synapse.app.media_repository":
+                # This is our backwards compatibility bypass
+                self.can_load_media_repo = True
+            else:
+                self.can_load_media_repo = False
+                return
 
         # Whether this instance should be the one to run the background jobs to
-        # e.g clean up old URL previews.
+        # e.g. clean up old URL previews. "master" here is the same as what is returned
+        # by 'hs.get_instance_name()' when on the main process.
         self.media_instance_running_background_jobs = config.get(
             "media_instance_running_background_jobs",
+            "master",
         )
 
         self.max_upload_size = self.parse_size(config.get("max_upload_size", "50M"))

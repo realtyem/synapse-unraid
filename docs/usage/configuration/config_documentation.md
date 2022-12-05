@@ -1584,7 +1584,8 @@ Config options related to Synapse's media store.
 ### `enable_media_repo`
 
 Enable the media store service in the Synapse master. Defaults to true.
-Set to false if you are using a separate media store worker.
+Set to false if you are using a separate media repository worker(and remember to set to
+true in the worker's setting file).
 
 Example configuration:
 ```yaml
