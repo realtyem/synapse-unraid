@@ -28,7 +28,7 @@ case "$SYNAPSE_COMPLEMENT_DATABASE" in
     export POSTGRES_HOST="${POSTGRES_HOST:-localhost}"
 
     # configure supervisord to start postgres
-    export START_POSTGRES=true
+    export START_POSTGRES="${START_POSTGRES:-true}"
     ;;
 
   sqlite|"")
