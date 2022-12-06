@@ -557,6 +557,11 @@ jobs:
         with:
           path: synapse
 
+      - name: Run Docker on tmpfs
+        uses: JonasAlfredsson/docker-on-tmpfs@v1
+        with:
+          tmpfs_size: 5
+
       - name: Set up PostgreSQL docker
         if: ${{ matrix.database == 'Postgres' }}
         run: |
@@ -619,7 +624,7 @@ jobs:
         shell: bash
         env:
           PASS_START_POSTGRES: false
-          PASS_SYNAPSE_POSTGRES_HOST: host.docker.internal
+          PASS_POSTGRES_HOST: host.docker.internal
         name: Run Complement Tests
 
   cargo-test:
