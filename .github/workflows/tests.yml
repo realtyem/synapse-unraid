@@ -553,12 +553,12 @@ jobs:
           path: synapse
 
       - name: Set up PostgreSQL docker
-        if: ${{ matrix.database == Postgres }}
+        if: ${{ matrix.database == 'Postgres' }}
         run: |
           docker run -d -p 5432:5432 \
             -e POSTGRES_PASSWORD=somesecret \
             -e POSTGRES_INITDB_ARGS="--lc-collate C --lc-ctype C --encoding UTF8" \
-            postgres:${{ matrix.job.postgres-version }}
+            postgres:13
 
       - name: Set up Docker Buildx
         id: buildx
