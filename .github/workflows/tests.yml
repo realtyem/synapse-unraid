@@ -552,6 +552,14 @@ jobs:
         with:
           path: synapse
 
+      - name: Set up PostgreSQL docker
+        if: ${{ matrix.database == Postgres }}
+        run: |
+          docker run -d -p 5432:5432 \
+            -e POSTGRES_PASSWORD=somesecret \
+            -e POSTGRES_INITDB_ARGS="--lc-collate C --lc-ctype C --encoding UTF8" \
+            postgres:${{ matrix.job.postgres-version }}
+
       - name: Set up Docker Buildx
         id: buildx
         uses: docker/setup-buildx-action@v2
@@ -604,6 +612,9 @@ jobs:
           set -o pipefail
           POSTGRES=${{ (matrix.database == 'Postgres') && 1 || '' }} WORKERS=${{ (matrix.arrangement == 'workers') && 1 || '' }} COMPLEMENT_DIR=`pwd`/complement synapse/scripts-dev/complement.sh -f -json 2>&1 | synapse/.ci/scripts/gotestfmt
         shell: bash
+        env:
+          PASS_START_POSTGRES: false
+          PASS_SYNAPSE_POSTGRES_HOST: localhost
         name: Run Complement Tests
 
   cargo-test:
