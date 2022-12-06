@@ -614,7 +614,7 @@ jobs:
         shell: bash
         env:
           PASS_START_POSTGRES: false
-          PASS_SYNAPSE_POSTGRES_HOST: localhost
+          PASS_SYNAPSE_POSTGRES_HOST: host.docker.internal
         name: Run Complement Tests
 
   cargo-test:
