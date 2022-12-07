@@ -161,37 +161,37 @@ jobs:
 
       - run: cargo fmt --check
 
-  prewarm-cache:
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+  # prewarm-cache:
+  #   runs-on: ubuntu-22.04
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v3
 
       # - name: Run Docker on tmpfs
       #   uses: JonasAlfredsson/docker-on-tmpfs@v1
       #   with:
       #     tmpfs_size: 5
 
-      - name: Set up Docker Buildx
-        id: buildx
-        uses: docker/setup-buildx-action@v2
+  #     - name: Set up Docker Buildx
+  #       id: buildx
+  #       uses: docker/setup-buildx-action@v2
 
-      - name: Build and push
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          push: false
-          file: "docker/Dockerfile-unified"
-          tags: "realtyem/synapse:latest"
-          outputs: type=docker,dest=/tmp/synapse-prewarm.tar
-          cache-from: type=gha
+  #     - name: Build and push
+  #       uses: docker/build-push-action@v3
+  #       with:
+  #         context: .
+  #         push: false
+  #         file: "docker/Dockerfile-unified"
+  #         tags: "realtyem/synapse:latest"
+  #         outputs: type=docker,dest=/tmp/synapse-prewarm.tar
+  #         cache-from: type=gha
           #cache-to: type=gha,mode=max
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: synapse-prewarm
-          path: /tmp/synapse-prewarm.tar
+  #     - name: Upload artifact
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         name: synapse-prewarm
+  #         path: /tmp/synapse-prewarm.tar
 
   # Dummy step to gate other tests on without repeating the whole list
   linting-done:
@@ -205,7 +205,7 @@ jobs:
       - check-schema-delta
       - lint-clippy
       - lint-rustfmt
-      - prewarm-cache
+      # - prewarm-cache
     runs-on: ubuntu-22.04
     steps:
       - run: "true"
@@ -577,31 +577,31 @@ jobs:
       - name: Prepare Complement's Prerequisites
         run: synapse/.ci/scripts/setup_complement_prerequisites.sh
 
-      - name: Download artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: synapse-prewarm
-          path: /tmp
+      # - name: Download artifact
+      #   uses: actions/download-artifact@v3
+      #   with:
+      #     name: synapse-prewarm
+      #     path: /tmp
 
-      - name: Load image
-        run: |
-          docker load --input /tmp/synapse-prewarm.tar
-          docker image ls -a
+      # - name: Load image
+      #   run: |
+      #     docker load --input /tmp/synapse-prewarm.tar
+      #     docker image ls -a
 
-      - name: Build Complement
-        uses: docker/build-push-action@v3
-        with:
-          context: ./synapse/docker/complement
-          push: false
-          load: true
-          file: "synapse/docker/complement/Dockerfile"
-          tags: "complement-synapse:latest"
+      # - name: Build Complement
+      #   uses: docker/build-push-action@v3
+      #   with:
+      #     context: ./synapse/docker/complement
+      #     push: false
+      #     load: true
+      #     file: "synapse/docker/complement/Dockerfile"
+      #     tags: "complement-synapse:latest"
           # cache-from: type=gha
           # cache-to: type=gha,mode=max
 
       - run: |
           set -o pipefail
-          POSTGRES=${{ (matrix.database == 'Postgres') && 1 || '' }} WORKERS=${{ (matrix.arrangement == 'workers') && 1 || '' }} COMPLEMENT_DIR=`pwd`/complement synapse/scripts-dev/complement-csapi.sh -f -json 2>&1 | synapse/.ci/scripts/gotestfmt
+          POSTGRES=${{ (matrix.database == 'Postgres') && 1 || '' }} WORKERS=${{ (matrix.arrangement == 'workers') && 1 || '' }} COMPLEMENT_DIR=`pwd`/complement synapse/scripts-dev/complement-csapi.sh -json 2>&1 | synapse/.ci/scripts/gotestfmt
         shell: bash
         name: Run Complement Tests
 
@@ -650,31 +650,31 @@ jobs:
       - name: Prepare Complement's Prerequisites
         run: synapse/.ci/scripts/setup_complement_prerequisites.sh
 
-      - name: Download artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: synapse-prewarm
-          path: /tmp
+      # - name: Download artifact
+      #   uses: actions/download-artifact@v3
+      #   with:
+      #     name: synapse-prewarm
+      #     path: /tmp
 
-      - name: Load image
-        run: |
-          docker load --input /tmp/synapse-prewarm.tar
-          docker image ls -a
+      # - name: Load image
+      #   run: |
+      #     docker load --input /tmp/synapse-prewarm.tar
+      #     docker image ls -a
 
-      - name: Build Complement
-        uses: docker/build-push-action@v3
-        with:
-          context: ./synapse/docker/complement
-          push: false
-          load: true
-          file: "synapse/docker/complement/Dockerfile"
-          tags: "complement-synapse:latest"
+      # - name: Build Complement
+      #   uses: docker/build-push-action@v3
+      #   with:
+      #     context: ./synapse/docker/complement
+      #     push: false
+      #     load: true
+      #     file: "synapse/docker/complement/Dockerfile"
+      #     tags: "complement-synapse:latest"
           # cache-from: type=gha
           # cache-to: type=gha,mode=max
 
       - run: |
           set -o pipefail
-          POSTGRES=${{ (matrix.database == 'Postgres') && 1 || '' }} WORKERS=${{ (matrix.arrangement == 'workers') && 1 || '' }} COMPLEMENT_DIR=`pwd`/complement synapse/scripts-dev/complement-fed.sh -f -json 2>&1 | synapse/.ci/scripts/gotestfmt
+          POSTGRES=${{ (matrix.database == 'Postgres') && 1 || '' }} WORKERS=${{ (matrix.arrangement == 'workers') && 1 || '' }} COMPLEMENT_DIR=`pwd`/complement synapse/scripts-dev/complement-fed.sh -json 2>&1 | synapse/.ci/scripts/gotestfmt
         shell: bash
         name: Run Complement Tests
 
