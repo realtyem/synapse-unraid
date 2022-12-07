@@ -25,16 +25,16 @@ FROM $FROM
     # the same debian version as Synapse's docker image (so the versions of the
     # shared libraries match).
     RUN adduser --system --uid 999 postgres --home /var/lib/postgresql
-    COPY --from=postgres:13-bullseye /usr/lib/postgresql /usr/lib/postgresql
-    COPY --from=postgres:13-bullseye /usr/share/postgresql /usr/share/postgresql
+    COPY --from=postgres:15-bullseye /usr/lib/postgresql /usr/lib/postgresql
+    COPY --from=postgres:15-bullseye /usr/share/postgresql /usr/share/postgresql
     RUN mkdir /var/run/postgresql && chown postgres /var/run/postgresql
-    ENV PATH="${PATH}:/usr/lib/postgresql/13/bin"
+    ENV PATH="${PATH}:/usr/lib/postgresql/15/bin"
     ENV PGDATA=/var/lib/postgresql/data
 
     # We also initialize the database at build time, rather than runtime, so that it's faster to spin up the image.
     RUN gosu postgres initdb --locale=C --encoding=UTF-8 --auth-host password
 
-    RUN echo "ALTER SYSTEM SET max_connections = '100'" | gosu postgres postgres --single
+    RUN echo "ALTER SYSTEM SET max_connections = '500'" | gosu postgres postgres --single
     RUN echo "ALTER SYSTEM SET shared_buffers = '1792MB'" | gosu postgres postgres --single
     RUN echo "ALTER SYSTEM SET effective_cache_size = '5376MB'" | gosu postgres postgres --single
     RUN echo "ALTER SYSTEM SET maintenance_work_mem = '448MB'" | gosu postgres postgres --single
