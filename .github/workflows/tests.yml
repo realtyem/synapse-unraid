@@ -167,10 +167,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Run Docker on tmpfs
-        uses: JonasAlfredsson/docker-on-tmpfs@v1
-        with:
-          tmpfs_size: 5
+      # - name: Run Docker on tmpfs
+      #   uses: JonasAlfredsson/docker-on-tmpfs@v1
+      #   with:
+      #     tmpfs_size: 5
 
       - name: Set up Docker Buildx
         id: buildx
@@ -192,7 +192,6 @@ jobs:
         with:
           name: synapse-prewarm
           path: /tmp/synapse-prewarm.tar
-
 
   # Dummy step to gate other tests on without repeating the whole list
   linting-done:
@@ -557,10 +556,10 @@ jobs:
         with:
           path: synapse
 
-      - name: Run Docker on tmpfs
-        uses: JonasAlfredsson/docker-on-tmpfs@v1
-        with:
-          tmpfs_size: 5
+      # - name: Run Docker on tmpfs
+      #   uses: JonasAlfredsson/docker-on-tmpfs@v1
+      #   with:
+      #     tmpfs_size: 5
 
       - name: Set up Docker Buildx
         id: buildx
@@ -630,10 +629,10 @@ jobs:
         with:
           path: synapse
 
-      - name: Run Docker on tmpfs
-        uses: JonasAlfredsson/docker-on-tmpfs@v1
-        with:
-          tmpfs_size: 5
+      # - name: Run Docker on tmpfs
+      #   uses: JonasAlfredsson/docker-on-tmpfs@v1
+      #   with:
+      #     tmpfs_size: 5
 
       - name: Set up Docker Buildx
         id: buildx
