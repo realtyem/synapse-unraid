@@ -22,7 +22,7 @@ FROM $FROM
     COPY --from=postgres:13-bullseye /usr/lib/postgresql /usr/lib/postgresql
     COPY --from=postgres:13-bullseye /usr/share/postgresql /usr/share/postgresql
     RUN mkdir /var/run/postgresql && chown postgres /var/run/postgresql
-    ENV PATH="${PATH}:/usr/lib/postgresql/15/bin"
+    ENV PATH="${PATH}:/usr/lib/postgresql/13/bin"
     ENV PGDATA=/var/lib/postgresql/data
 
     # We also initialize the database at build time, rather than runtime, so that it's faster to spin up the image.
