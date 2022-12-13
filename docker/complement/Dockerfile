@@ -40,7 +40,6 @@ FROM $FROM
     RUN echo "ALTER SYSTEM SET work_mem = '9175kB'" | gosu postgres postgres --single
     RUN echo "ALTER SYSTEM SET min_wal_size = '1GB'" | gosu postgres postgres --single
     RUN echo "ALTER SYSTEM SET max_wal_size = '4GB'" | gosu postgres postgres --single
-    RUN echo "ALTER SYSTEM SET synchronous_commit = 'off'" | gosu postgres postgres --single
 
     # Configure a password and create a database for Synapse
     RUN echo "ALTER USER postgres PASSWORD 'somesecret'" | gosu postgres postgres --single
