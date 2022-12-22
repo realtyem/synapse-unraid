@@ -4,7 +4,7 @@ name: Build docker images
 
 on:
   push:
-#    tags: ["v*"]
+    tags: ["v*"]
     branches: [ "unraid_develop" ]
   workflow_dispatch:
 
@@ -48,7 +48,7 @@ jobs:
           tags: |
             type=raw,value=${{ github.ref_name }},enable=${{ github.ref != 'refs/heads/unraid_develop' }}
             type=raw,value=unified,enable=${{ github.ref == 'refs/heads/unraid_develop' }}
-            type=pep440,pattern={{raw}}
+            type=semver,pattern={{version}}
 
       - name: Build and push to repo
 
