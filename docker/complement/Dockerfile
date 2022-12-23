@@ -10,12 +10,6 @@ ARG SYNAPSE_VERSION=latest
 ARG FROM=realtyem/synapse:$SYNAPSE_VERSION
 
 FROM $FROM
-    RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
-        --mount=type=cache,target=/var/lib/apt,sharing=locked \
-        apt-get update -qq && apt-get install -yqq \
-            postgresql-client \
-        && rm -rf /var/lib/apt/lists/*
-
     # First of all, we copy postgres server from the official postgres image,
     # since for repeated rebuilds, this is much faster than apt installing
     # postgres each time.
