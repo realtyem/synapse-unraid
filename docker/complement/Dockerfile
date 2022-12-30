@@ -19,12 +19,31 @@ FROM $FROM
     # the same debian version as Synapse's docker image (so the versions of the
     # shared libraries match).
     RUN adduser --system --uid 999 postgres --home /var/lib/postgresql
-    COPY --from=postgres:13-bullseye /usr/lib/postgresql /usr/lib/postgresql
-    COPY --from=postgres:13-bullseye /usr/share/postgresql /usr/share/postgresql
+#    COPY --from=postgres:13-bullseye /usr/lib/postgresql /usr/lib/postgresql
+#    COPY --from=postgres:13-bullseye /usr/share/postgresql /usr/share/postgresql
     RUN mkdir /var/run/postgresql && chown postgres /var/run/postgresql
-    ENV PATH="${PATH}:/usr/lib/postgresql/13/bin"
+    ENV PATH="${PATH}:/usr/lib/postgresql/15/bin"
     ENV PGDATA=/var/lib/postgresql/data
+	RUN \
+    --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update -qq && apt-get install -yqq \
+      gnupg \
+    && rm -rf /var/lib/apt/lists/*
 
+	RUN echo "deb http://apt.postgresql.org/pub/repos/apt bullseye-pgdg main" > /etc/apt/sources.list.d/pgdg.list
+	RUN \
+    --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    curl https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - \
+    && rm -rf /var/lib/apt/lists/*
+
+	RUN \
+    --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update -qq && apt-get upgrade -y && apt-get install -y \
+      postgresql-15 \
+    && rm -rf /var/lib/apt/lists/*
     # We also initialize the database at build time, rather than runtime, so that it's faster to spin up the image.
     RUN gosu postgres initdb --locale=C --encoding=UTF-8 --auth-host password
 
@@ -38,8 +57,9 @@ FROM $FROM
     RUN echo "ALTER SYSTEM SET random_page_cost = '1.1'" | gosu postgres postgres --single
     RUN echo "ALTER SYSTEM SET effective_io_concurrency = '200'" | gosu postgres postgres --single
     RUN echo "ALTER SYSTEM SET work_mem = '9175kB'" | gosu postgres postgres --single
-    RUN echo "ALTER SYSTEM SET min_wal_size = '1GB'" | gosu postgres postgres --single
+    # RUN echo "ALTER SYSTEM SET min_wal_size = '1GB'" | gosu postgres postgres --single
     RUN echo "ALTER SYSTEM SET max_wal_size = '4GB'" | gosu postgres postgres --single
+    RUN echo "ALTER SYSTEM SET synchronous_commits = 'off'" | gosu postgres postgres --single
 
     # Configure a password and create a database for Synapse
     RUN echo "ALTER USER postgres PASSWORD 'somesecret'" | gosu postgres postgres --single
