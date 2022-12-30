@@ -635,8 +635,7 @@ jobs:
       - sytest
       - export-data
       - portdb
-      - complement-csapi
-      - complement-fed
+      - complement
       - cargo-test
     runs-on: ubuntu-22.04
     steps:
