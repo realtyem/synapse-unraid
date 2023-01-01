@@ -64,6 +64,7 @@ tls_private_key_path: "/data/{{ SYNAPSE_SERVER_NAME }}.tls.key"
 {% if POSTGRES_PASSWORD %}
 database:
   name: "psycopg2"
+  synchronous_commit: {{ SYNAPSE_POSTGRES_DISABLE_SYNCHRONOUS_COMMIT or true}}
   args:
     user: "{{ POSTGRES_USER or "synapse" }}"
     password: "{{ POSTGRES_PASSWORD }}"

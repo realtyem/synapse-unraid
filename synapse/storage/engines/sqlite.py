@@ -92,7 +92,7 @@ class Sqlite3Engine(BaseDatabaseEngine[sqlite3.Connection, sqlite3.Cursor]):
         # Enable WAL.
         # see https://www.sqlite.org/wal.html
         db_conn.execute("PRAGMA journal_mode = WAL;")
-        db_conn.execute("PRAGMA synchronous = off;")
+        # db_conn.execute("PRAGMA synchronous = off;")
         db_conn.commit()
 
     def is_deadlock(self, error: Exception) -> bool:
