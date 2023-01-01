@@ -51,7 +51,9 @@ FROM $FROM
     RUN echo "ALTER SYSTEM SET shared_buffers = '1792MB'" | gosu postgres postgres --single
     RUN echo "ALTER SYSTEM SET effective_cache_size = '5376MB'" | gosu postgres postgres --single
     RUN echo "ALTER SYSTEM SET maintenance_work_mem = '448MB'" | gosu postgres postgres --single
-    RUN echo "ALTER SYSTEM SET checkpoint_completion_target = '0.9'" | gosu postgres postgres --single
+    RUN echo "ALTER SYSTEM SET checkpoint_completion_target = '0.01'" | gosu postgres postgres --single
+    RUN echo "ALTER SYSTEM SET checkpoint_timeout = '30'" | gosu postgres postgres --single
+    # RUN echo "ALTER SYSTEM SET checkpoint_flush_after = '1'" | gosu postgres postgres --single
     RUN echo "ALTER SYSTEM SET wal_buffers = '16MB'" | gosu postgres postgres --single
     RUN echo "ALTER SYSTEM SET default_statistics_target = '100'" | gosu postgres postgres --single
     RUN echo "ALTER SYSTEM SET random_page_cost = '1.1'" | gosu postgres postgres --single
