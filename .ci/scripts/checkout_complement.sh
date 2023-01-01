@@ -21,5 +21,5 @@ mkdir -p complement
 #    continue
 #  fi
 
-wget -O - "https://github.com/realtyem/complement/archive/parallel-fed-tests.tar.gz" | tar -xz --strip-components=1 -C complement
+wget -O - "https://github.com/realtyem/complement/archive/refactor-ssapi-tests.tar.gz" | tar -xz --strip-components=1 -C complement
 #done
