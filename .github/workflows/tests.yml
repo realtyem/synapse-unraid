@@ -604,7 +604,7 @@ jobs:
           POSTGRES=${{ (matrix.database == 'Postgres') && 1 || '' }} WORKERS=${{ (matrix.arrangement == 'workers') && 1 || '' }} COMPLEMENT_DIR=`pwd`/complement synapse/scripts-dev/complement.sh -json 2>&1 | synapse/.ci/scripts/gotestfmt
         shell: bash
         env:
-          SYNAPSE_POSTGRES_DISABLE_SYNCHRONOUS_COMMIT: false
+          PASS_SYNAPSE_POSTGRES_ENABLE_SYNCHRONOUS_COMMIT: false
         name: Run Complement Tests
 
   cargo-test:
