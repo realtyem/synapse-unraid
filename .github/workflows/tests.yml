@@ -577,7 +577,7 @@ jobs:
       - name: Prepare Complement's Prerequisites
         run: synapse/.ci/scripts/setup_complement_prerequisites.sh
 
-      - name: Check Disk Space
+      - name: Check Disk and Memory Free Space
         run: |
           df -h
           swapon --show
@@ -612,6 +612,12 @@ jobs:
         env:
           PASS_SYNAPSE_POSTGRES_ENABLE_SYNCHRONOUS_COMMIT: false
         name: Run Complement Tests
+
+      - name: Check Disk and Memory Free Space
+        run: |
+          df -h
+          swapon --show
+          free -h
 
   cargo-test:
     if: ${{ needs.changes.outputs.rust == 'true' }}
