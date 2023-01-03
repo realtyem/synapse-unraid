@@ -581,6 +581,7 @@ jobs:
         run: |
           df -h
           swapon --show
+          free -h
 
       # - name: Download artifact
       #   uses: actions/download-artifact@v3
