@@ -577,6 +577,11 @@ jobs:
       - name: Prepare Complement's Prerequisites
         run: synapse/.ci/scripts/setup_complement_prerequisites.sh
 
+      - name: Check Disk Space
+        run: |
+          df -h
+          swapon --show
+
       # - name: Download artifact
       #   uses: actions/download-artifact@v3
       #   with:
