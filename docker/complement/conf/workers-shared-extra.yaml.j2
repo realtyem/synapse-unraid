@@ -114,5 +114,21 @@ server_notices:
 caches:
   sync_response_cache_duration: 0
 
+# Disable background updates, or at least make them not so slow.
+# background_updates:
+#   background_update_duration_ms: 100
+#   sleep_enabled: true
+#   sleep_duration_ms: 1000
+#   min_batch_size: 1
+#   default_batch_size: 100
+
+# Disable background updates, or at least make them not so slow.
+background_updates:
+  background_update_duration_ms: 1000
+  sleep_enabled: true
+  sleep_duration_ms: 10
+  min_batch_size: 1
+  default_batch_size: 100
+
 
 {% include "shared-orig.yaml.j2" %}
