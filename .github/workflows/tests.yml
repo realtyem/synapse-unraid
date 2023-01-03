@@ -551,6 +551,11 @@ jobs:
             database: Postgres
 
     steps:
+      - name: Increase Swap Memory space
+        uses: pierotofy/set-swap-space@master
+        with:
+          swap-size-gb: 10
+
       - name: Run actions/checkout@v3 for synapse
         uses: actions/checkout@v3
         with:
