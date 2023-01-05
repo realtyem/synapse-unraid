@@ -554,7 +554,7 @@ jobs:
       - name: Increase Swap Memory space
         uses: pierotofy/set-swap-space@master
         with:
-          swap-size-gb: 10
+          swap-size-gb: 13
 
       - name: Run actions/checkout@v3 for synapse
         uses: actions/checkout@v3
@@ -588,34 +588,13 @@ jobs:
           swapon --show
           free -h
 
-      # - name: Download artifact
-      #   uses: actions/download-artifact@v3
-      #   with:
-      #     name: synapse-prewarm
-      #     path: /tmp
-
-      # - name: Load image
-      #   run: |
-      #     docker load --input /tmp/synapse-prewarm.tar
-      #     docker image ls -a
-
-      # - name: Build Complement
-      #   uses: docker/build-push-action@v3
-      #   with:
-      #     context: ./synapse/docker/complement
-      #     push: false
-      #     load: true
-      #     file: "synapse/docker/complement/Dockerfile"
-      #     tags: "complement-synapse:latest"
-          # cache-from: type=gha
-          # cache-to: type=gha,mode=max
-
       - run: |
           set -o pipefail
           POSTGRES=${{ (matrix.database == 'Postgres') && 1 || '' }} WORKERS=${{ (matrix.arrangement == 'workers') && 1 || '' }} COMPLEMENT_DIR=`pwd`/complement synapse/scripts-dev/complement-csapi.sh -p=2 -parallel=4 -json 2>&1 | synapse/.ci/scripts/gotestfmt
         shell: bash
         env:
           PASS_SYNAPSE_POSTGRES_ENABLE_SYNCHRONOUS_COMMIT: false
+          SYNAPSE_TEST_LOG_LEVEL: DEBUG
         name: Run Complement Tests
 
       - name: Check Disk and Memory Free Space
@@ -646,7 +625,7 @@ jobs:
       - name: Increase Swap Memory space
         uses: pierotofy/set-swap-space@master
         with:
-          swap-size-gb: 10
+          swap-size-gb: 13
 
       - name: Run actions/checkout@v3 for synapse
         uses: actions/checkout@v3
@@ -680,33 +659,12 @@ jobs:
           swapon --show
           free -h
 
-      # - name: Download artifact
-      #   uses: actions/download-artifact@v3
-      #   with:
-      #     name: synapse-prewarm
-      #     path: /tmp
-
-      # - name: Load image
-      #   run: |
-      #     docker load --input /tmp/synapse-prewarm.tar
-      #     docker image ls -a
-
-      # - name: Build Complement
-      #   uses: docker/build-push-action@v3
-      #   with:
-      #     context: ./synapse/docker/complement
-      #     push: false
-      #     load: true
-      #     file: "synapse/docker/complement/Dockerfile"
-      #     tags: "complement-synapse:latest"
-          # cache-from: type=gha
-          # cache-to: type=gha,mode=max
-
       - run: |
           set -o pipefail
           POSTGRES=${{ (matrix.database == 'Postgres') && 1 || '' }} WORKERS=${{ (matrix.arrangement == 'workers') && 1 || '' }} COMPLEMENT_DIR=`pwd`/complement synapse/scripts-dev/complement-fed.sh -p=4 -parallel=4 -json 2>&1 | synapse/.ci/scripts/gotestfmt
         shell: bash
         env:
+          SYNAPSE_TEST_LOG_LEVEL: DEBUG
           PASS_SYNAPSE_POSTGRES_ENABLE_SYNCHRONOUS_COMMIT: false
         name: Run Complement Tests
 
@@ -738,7 +696,7 @@ jobs:
       - name: Increase Swap Memory space
         uses: pierotofy/set-swap-space@master
         with:
-          swap-size-gb: 10
+          swap-size-gb: 13
 
       - name: Run actions/checkout@v3 for synapse
         uses: actions/checkout@v3
@@ -772,33 +730,13 @@ jobs:
           swapon --show
           free -h
 
-      # - name: Download artifact
-      #   uses: actions/download-artifact@v3
-      #   with:
-      #     name: synapse-prewarm
-      #     path: /tmp
-
-      # - name: Load image
-      #   run: |
-      #     docker load --input /tmp/synapse-prewarm.tar
-      #     docker image ls -a
-
-      # - name: Build Complement
-      #   uses: docker/build-push-action@v3
-      #   with:
-      #     context: ./synapse/docker/complement
-      #     push: false
-      #     load: true
-      #     file: "synapse/docker/complement/Dockerfile"
-      #     tags: "complement-synapse:latest"
-          # cache-from: type=gha
-          # cache-to: type=gha,mode=max
 
       - run: |
           set -o pipefail
           POSTGRES=${{ (matrix.database == 'Postgres') && 1 || '' }} WORKERS=${{ (matrix.arrangement == 'workers') && 1 || '' }} COMPLEMENT_DIR=`pwd`/complement synapse/scripts-dev/complement.sh -p=4 -parallel=4 -json 2>&1 | synapse/.ci/scripts/gotestfmt
         shell: bash
         env:
+          SYNAPSE_TEST_LOG_LEVEL: DEBUG
           PASS_SYNAPSE_POSTGRES_ENABLE_SYNCHRONOUS_COMMIT: false
         name: Run Complement Tests
 

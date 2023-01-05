@@ -97,15 +97,6 @@ event_cache_size: "{{ SYNAPSE_EVENT_CACHE_SIZE or "10K" }}"
 caches:
   global_factor: {{ SYNAPSE_CACHES_GLOBAL_FACTOR or 0.5 }}
 
-## Ratelimiting ##
-rc_messages_per_second: 0.2
-rc_message_burst_count: 10.0
-federation_rc_window_size: 1000
-federation_rc_sleep_limit: 10
-federation_rc_sleep_delay: 500
-federation_rc_reject_limit: 50
-federation_rc_concurrent: 3
-
 ## Files ##
 media_store_path: "{{ SYNAPSE_MEDIA_STORE_PATH or "/data/media_store" }}"
 max_upload_size: "{{ SYNAPSE_MAX_UPLOAD_SIZE or "50M" }}"
@@ -145,6 +136,7 @@ turn_shared_secret: "{{ SYNAPSE_TURN_SECRET }}"
 turn_user_lifetime: "1h"
 turn_allow_guests: True
 {% endif %}
+
 ## Registration ##
 enable_registration: {{ SYNAPSE_ENABLE_REGISTRATION }}
 registration_shared_secret: "{{ SYNAPSE_REGISTRATION_SHARED_SECRET }}"
