@@ -594,7 +594,6 @@ jobs:
         shell: bash
         env:
           PASS_SYNAPSE_POSTGRES_ENABLE_SYNCHRONOUS_COMMIT: false
-          COMPLEMENT_DEBUG: 1
           SYNAPSE_TEST_LOG_LEVEL: DEBUG
         name: Run Complement Tests
 
@@ -665,7 +664,6 @@ jobs:
           POSTGRES=${{ (matrix.database == 'Postgres') && 1 || '' }} WORKERS=${{ (matrix.arrangement == 'workers') && 1 || '' }} COMPLEMENT_DIR=`pwd`/complement synapse/scripts-dev/complement-fed.sh -p=4 -parallel=4 -json 2>&1 | synapse/.ci/scripts/gotestfmt
         shell: bash
         env:
-          COMPLEMENT_DEBUG: 1
           SYNAPSE_TEST_LOG_LEVEL: DEBUG
           PASS_SYNAPSE_POSTGRES_ENABLE_SYNCHRONOUS_COMMIT: false
         name: Run Complement Tests
@@ -732,14 +730,12 @@ jobs:
           swapon --show
           free -h
 
-
       - run: |
           set -o pipefail
           POSTGRES=${{ (matrix.database == 'Postgres') && 1 || '' }} WORKERS=${{ (matrix.arrangement == 'workers') && 1 || '' }} COMPLEMENT_DIR=`pwd`/complement synapse/scripts-dev/complement.sh -p=4 -parallel=4 -json 2>&1 | synapse/.ci/scripts/gotestfmt
         shell: bash
         env:
           SYNAPSE_TEST_LOG_LEVEL: DEBUG
-          COMPLEMENT_DEBUG: 1
           PASS_SYNAPSE_POSTGRES_ENABLE_SYNCHRONOUS_COMMIT: false
         name: Run Complement Tests
 
