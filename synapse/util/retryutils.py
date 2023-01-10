@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 # the initial backoff, after the first transaction fails
-MIN_RETRY_INTERVAL = 10 * 60 * 1000
+MIN_RETRY_INTERVAL = 10 * 1000
 
 # how much we multiply the backoff by after each subsequent fail
 RETRY_MULTIPLIER = 5

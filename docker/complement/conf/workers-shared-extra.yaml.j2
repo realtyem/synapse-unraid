@@ -14,6 +14,7 @@ enable_registration_without_verification: true
 bcrypt_rounds: 4
 url_preview_enabled: true
 url_preview_ip_range_blacklist: []
+serve_server_wellknown: true
 
 ## Registration ##
 
@@ -33,16 +34,20 @@ federation_ip_range_blacklist: []
 # Disable server rate-limiting
 rc_federation:
   window_size: 1000
-  sleep_limit: 10
-  sleep_delay: 500
+  sleep_limit: 100
+  sleep_delay: 50
   reject_limit: 99999
-  concurrent: 3
+  concurrent: 30
 
 rc_message:
   per_second: 9999
   burst_count: 9999
 
 rc_registration:
+  per_second: 9999
+  burst_count: 9999
+
+rc_registration_token_validity:
   per_second: 9999
   burst_count: 9999
 
@@ -84,6 +89,13 @@ rc_invites:
   per_user:
     per_second: 1000
     burst_count: 1000
+  per_issuer:
+    per_second: 1000
+    burst_count: 1000
+
+rc_third_party_invites:
+  per_second: 9999
+  burst_count: 9999
 
 federation_rr_transactions_per_room_per_second: 9999
 
@@ -113,6 +125,22 @@ server_notices:
 # Disable sync cache so that initial `/sync` requests are up-to-date.
 caches:
   sync_response_cache_duration: 0
+
+# Disable background updates, or at least make them not so slow.
+# background_updates:
+#   background_update_duration_ms: 100
+#   sleep_enabled: true
+#   sleep_duration_ms: 1000
+#   min_batch_size: 1
+#   default_batch_size: 100
+
+# Disable background updates, or at least make them not so slow.
+background_updates:
+  background_update_duration_ms: 1000
+  sleep_enabled: true
+  sleep_duration_ms: 10
+  min_batch_size: 1
+  default_batch_size: 100
 
 
 {% include "shared-orig.yaml.j2" %}
