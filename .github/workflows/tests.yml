@@ -590,7 +590,7 @@ jobs:
 
       - run: |
           set -o pipefail
-          POSTGRES=${{ (matrix.database == 'Postgres') && 1 || '' }} WORKERS=${{ (matrix.arrangement == 'workers') && 1 || '' }} COMPLEMENT_DIR=`pwd`/complement synapse/scripts-dev/complement-csapi.sh -p=2 -parallel=4 -json 2>&1 | synapse/.ci/scripts/gotestfmt
+          POSTGRES=${{ (matrix.database == 'Postgres') && 1 || '' }} WORKERS=${{ (matrix.arrangement == 'workers') && 1 || '' }} COMPLEMENT_DIR=`pwd`/complement synapse/scripts-dev/complement-csapi.sh -json 2>&1 | synapse/.ci/scripts/gotestfmt
         shell: bash
         env:
           PASS_SYNAPSE_POSTGRES_ENABLE_SYNCHRONOUS_COMMIT: false
@@ -661,7 +661,7 @@ jobs:
 
       - run: |
           set -o pipefail
-          POSTGRES=${{ (matrix.database == 'Postgres') && 1 || '' }} WORKERS=${{ (matrix.arrangement == 'workers') && 1 || '' }} COMPLEMENT_DIR=`pwd`/complement synapse/scripts-dev/complement-fed.sh -p=4 -parallel=4 -json 2>&1 | synapse/.ci/scripts/gotestfmt
+          POSTGRES=${{ (matrix.database == 'Postgres') && 1 || '' }} WORKERS=${{ (matrix.arrangement == 'workers') && 1 || '' }} COMPLEMENT_DIR=`pwd`/complement synapse/scripts-dev/complement-fed.sh -json 2>&1 | synapse/.ci/scripts/gotestfmt
         shell: bash
         env:
           SYNAPSE_TEST_LOG_LEVEL: DEBUG
@@ -732,7 +732,7 @@ jobs:
 
       - run: |
           set -o pipefail
-          POSTGRES=${{ (matrix.database == 'Postgres') && 1 || '' }} WORKERS=${{ (matrix.arrangement == 'workers') && 1 || '' }} COMPLEMENT_DIR=`pwd`/complement synapse/scripts-dev/complement.sh -p=4 -parallel=4 -json 2>&1 | synapse/.ci/scripts/gotestfmt
+          POSTGRES=${{ (matrix.database == 'Postgres') && 1 || '' }} WORKERS=${{ (matrix.arrangement == 'workers') && 1 || '' }} COMPLEMENT_DIR=`pwd`/complement synapse/scripts-dev/complement.sh -json 2>&1 | synapse/.ci/scripts/gotestfmt
         shell: bash
         env:
           SYNAPSE_TEST_LOG_LEVEL: DEBUG
