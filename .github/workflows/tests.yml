@@ -703,8 +703,8 @@ jobs:
           sudo cat /proc/sys/vm/swappiness
           sudo sysctl vm.swappiness=90
           sudo cat /proc/sys/vm/swappiness
-          sudo echo 1 > /sys/class/block/sda/queue/rotational
-          sudo echo 1024 > /sys/class/block/sda/queue/read_ahead_kb
+          echo 0 | sudo tee /sys/class/block/sda/queue/rotational
+          echo 1024 | sudo tee /sys/class/block/sda/queue/read_ahead_kb
 
       - name: Run actions/checkout@v3 for synapse
         uses: actions/checkout@v3
