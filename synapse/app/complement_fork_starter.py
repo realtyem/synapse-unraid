@@ -119,7 +119,9 @@ def _worker_entrypoint(
     for sig, handler in _original_signal_handlers.items():
         signal.signal(sig, handler)
 
-    if strtobool(os.environ.get("SYNAPSE_COMPLEMENT_FORKING_LAUNCHER_ASYNCIO_REACTOR", "0")):
+    if strtobool(
+        os.environ.get("SYNAPSE_COMPLEMENT_FORKING_LAUNCHER_ASYNCIO_REACTOR", "0")
+    ):
         import asyncio
 
         from twisted.internet.asyncioreactor import AsyncioSelectorReactor
