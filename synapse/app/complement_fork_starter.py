@@ -110,6 +110,8 @@ def _worker_entrypoint(
     and then kick off the worker's main() function.
     """
 
+    from synapse.util.stringutils import strtobool
+
     sys.argv = args
 
     # reset the custom signal handlers that we installed, so that the children start
@@ -117,9 +119,18 @@ def _worker_entrypoint(
     for sig, handler in _original_signal_handlers.items():
         signal.signal(sig, handler)
 
-    from twisted.internet.epollreactor import EPollReactor
+    if strtobool(os.environ.get("SYNAPSE_COMPLEMENT_FORKING_LAUNCHER_ASYNCIO_REACTOR", "0")):
+        import asyncio
 
-    proxy_reactor._install_real_reactor(EPollReactor())
+        from twisted.internet.asyncioreactor import AsyncioSelectorReactor
+
+        reactor = AsyncioSelectorReactor(asyncio.get_event_loop())
+        proxy_reactor._install_real_reactor(reactor)
+    else:
+        from twisted.internet.epollreactor import EPollReactor
+
+        proxy_reactor._install_real_reactor(EPollReactor())
+
     func()
 
 
