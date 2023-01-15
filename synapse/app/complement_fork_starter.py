@@ -124,7 +124,12 @@ def _worker_entrypoint(
     ):
         import asyncio
 
+        import uvloop
+
         from twisted.internet.asyncioreactor import AsyncioSelectorReactor
+
+        loop = uvloop.new_event_loop()
+        asyncio.set_event_loop(loop)
 
         reactor = AsyncioSelectorReactor(asyncio.get_event_loop())
         proxy_reactor._install_real_reactor(reactor)
