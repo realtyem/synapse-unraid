@@ -64,6 +64,7 @@ tls_private_key_path: "/data/{{ SYNAPSE_SERVER_NAME }}.tls.key"
 {% if POSTGRES_PASSWORD %}
 database:
   name: "psycopg2"
+  synchronous_commit: {{ SYNAPSE_POSTGRES_ENABLE_SYNCHRONOUS_COMMIT or true}}
   args:
     user: "{{ POSTGRES_USER or "synapse" }}"
     password: "{{ POSTGRES_PASSWORD }}"
@@ -95,15 +96,6 @@ email:
 event_cache_size: "{{ SYNAPSE_EVENT_CACHE_SIZE or "10K" }}"
 caches:
   global_factor: {{ SYNAPSE_CACHES_GLOBAL_FACTOR or 0.5 }}
-
-## Ratelimiting ##
-rc_messages_per_second: 0.2
-rc_message_burst_count: 10.0
-federation_rc_window_size: 1000
-federation_rc_sleep_limit: 10
-federation_rc_sleep_delay: 500
-federation_rc_reject_limit: 50
-federation_rc_concurrent: 3
 
 ## Files ##
 media_store_path: "{{ SYNAPSE_MEDIA_STORE_PATH or "/data/media_store" }}"
@@ -144,6 +136,7 @@ turn_shared_secret: "{{ SYNAPSE_TURN_SECRET }}"
 turn_user_lifetime: "1h"
 turn_allow_guests: True
 {% endif %}
+
 ## Registration ##
 enable_registration: {{ SYNAPSE_ENABLE_REGISTRATION }}
 registration_shared_secret: "{{ SYNAPSE_REGISTRATION_SHARED_SECRET }}"

@@ -58,7 +58,7 @@ jobs:
       - run: scripts-dev/check_schema_delta.py --force-colors
 
   lint:
-    uses: "matrix-org/backend-meta/.github/workflows/python-poetry-ci.yml@v1"
+    uses: "matrix-org/backend-meta/.github/workflows/python-poetry-ci.yml@v2"
     with:
       typechecking-extras: "all"
 
@@ -161,33 +161,37 @@ jobs:
 
       - run: cargo fmt --check
 
-  prewarm-cache:
-    runs-on: ubuntu-22.04
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+  # prewarm-cache:
+  #   runs-on: ubuntu-22.04
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v3
 
-      - name: Set up Docker Buildx
-        id: buildx
-        uses: docker/setup-buildx-action@v2
+      # - name: Run Docker on tmpfs
+      #   uses: JonasAlfredsson/docker-on-tmpfs@v1
+      #   with:
+      #     tmpfs_size: 5
 
-      - name: Build and push
-        uses: docker/build-push-action@v3
-        with:
-          context: .
-          push: false
-          file: "docker/Dockerfile-unified"
-          tags: "realtyem/synapse:latest"
-          outputs: type=docker,dest=/tmp/synapse-prewarm.tar
-          cache-from: type=gha
+  #     - name: Set up Docker Buildx
+  #       id: buildx
+  #       uses: docker/setup-buildx-action@v2
+
+  #     - name: Build and push
+  #       uses: docker/build-push-action@v3
+  #       with:
+  #         context: .
+  #         push: false
+  #         file: "docker/Dockerfile-unified"
+  #         tags: "realtyem/synapse:latest"
+  #         outputs: type=docker,dest=/tmp/synapse-prewarm.tar
+  #         cache-from: type=gha
           #cache-to: type=gha,mode=max
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: synapse-prewarm
-          path: /tmp/synapse-prewarm.tar
-
+  #     - name: Upload artifact
+  #       uses: actions/upload-artifact@v3
+  #       with:
+  #         name: synapse-prewarm
+  #         path: /tmp/synapse-prewarm.tar
 
   # Dummy step to gate other tests on without repeating the whole list
   linting-done:
@@ -201,7 +205,7 @@ jobs:
       - check-schema-delta
       - lint-clippy
       - lint-rustfmt
-      - prewarm-cache
+      # - prewarm-cache
     runs-on: ubuntu-22.04
     steps:
       - run: "true"
@@ -528,6 +532,148 @@ jobs:
             ported.sql
             schema_diff
 
+  complement-csapi:
+    if: "${{ !failure() && !cancelled() }}"
+    needs: linting-done
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arrangement: monolith
+            database: SQLite
+
+          - arrangement: monolith
+            database: Postgres
+
+          - arrangement: workers
+            database: Postgres
+
+    steps:
+      - name: Increase Swap Memory space
+        uses: pierotofy/set-swap-space@master
+        with:
+          swap-size-gb: 13
+
+      - name: Run actions/checkout@v3 for synapse
+        uses: actions/checkout@v3
+        with:
+          path: synapse
+
+      # - name: Run Docker on tmpfs
+      #   uses: JonasAlfredsson/docker-on-tmpfs@v1
+      #   with:
+      #     tmpfs_size: 5
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Install Rust
+        # There don't seem to be versioned releases of this action per se: for each rust
+        # version there is a branch which gets constantly rebased on top of master.
+        # We pin to a specific commit for paranoia's sake.
+        uses: dtolnay/rust-toolchain@e645b0cf01249a964ec099494d38d2da0f0b349f
+        with:
+            toolchain: 1.58.1
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Prepare Complement's Prerequisites
+        run: synapse/.ci/scripts/setup_complement_prerequisites.sh
+
+      - name: Check Disk and Memory Free Space
+        run: |
+          df -h
+          swapon --show
+          free -h
+
+      - run: |
+          set -o pipefail
+          ASYNCIO_REACTOR=1 POSTGRES=${{ (matrix.database == 'Postgres') && 1 || '' }} WORKERS=${{ (matrix.arrangement == 'workers') && 1 || '' }} COMPLEMENT_DIR=`pwd`/complement synapse/scripts-dev/complement-csapi.sh -json 2>&1 | synapse/.ci/scripts/gotestfmt
+        shell: bash
+        env:
+          PASS_SYNAPSE_POSTGRES_ENABLE_SYNCHRONOUS_COMMIT: false
+          SYNAPSE_TEST_LOG_LEVEL: DEBUG
+        name: Run Complement Tests
+
+      - name: Check Disk and Memory Free Space
+        run: |
+          df -h
+          swapon --show
+          free -h
+
+  complement-fed:
+    if: "${{ !failure() && !cancelled() }}"
+    needs: linting-done
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arrangement: monolith
+            database: SQLite
+
+          - arrangement: monolith
+            database: Postgres
+
+          - arrangement: workers
+            database: Postgres
+
+    steps:
+      - name: Increase Swap Memory space
+        uses: pierotofy/set-swap-space@master
+        with:
+          swap-size-gb: 13
+
+      - name: Run actions/checkout@v3 for synapse
+        uses: actions/checkout@v3
+        with:
+          path: synapse
+
+      # - name: Run Docker on tmpfs
+      #   uses: JonasAlfredsson/docker-on-tmpfs@v1
+      #   with:
+      #     tmpfs_size: 5
+
+      - name: Set up Docker Buildx
+        id: buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Install Rust
+        # There don't seem to be versioned releases of this action per se: for each rust
+        # version there is a branch which gets constantly rebased on top of master.
+        # We pin to a specific commit for paranoia's sake.
+        uses: dtolnay/rust-toolchain@e645b0cf01249a964ec099494d38d2da0f0b349f
+        with:
+            toolchain: 1.58.1
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Prepare Complement's Prerequisites
+        run: synapse/.ci/scripts/setup_complement_prerequisites.sh
+
+      - name: Check Disk and Memory Free Space
+        run: |
+          df -h
+          swapon --show
+          free -h
+
+      - run: |
+          set -o pipefail
+          ASYNCIO_REACTOR=1 POSTGRES=${{ (matrix.database == 'Postgres') && 1 || '' }} WORKERS=${{ (matrix.arrangement == 'workers') && 1 || '' }} COMPLEMENT_DIR=`pwd`/complement synapse/scripts-dev/complement-fed.sh -json 2>&1 | synapse/.ci/scripts/gotestfmt
+        shell: bash
+        env:
+          SYNAPSE_TEST_LOG_LEVEL: DEBUG
+          PASS_SYNAPSE_POSTGRES_ENABLE_SYNCHRONOUS_COMMIT: false
+        name: Run Complement Tests
+
+      - name: Check Disk and Memory Free Space
+        run: |
+          df -h
+          swapon --show
+          free -h
+
   complement:
     if: "${{ !failure() && !cancelled() }}"
     needs: linting-done
@@ -547,10 +693,28 @@ jobs:
             database: Postgres
 
     steps:
+      - name: Increase Swap Memory space
+        uses: pierotofy/set-swap-space@master
+        with:
+          swap-size-gb: 13
+
+      - name: Adjust Memory Values
+        run: |
+          sudo cat /proc/sys/vm/swappiness
+          sudo sysctl vm.swappiness=10
+          sudo cat /proc/sys/vm/swappiness
+          echo 0 | sudo tee /sys/class/block/sda/queue/rotational
+          echo 1024 | sudo tee /sys/class/block/sda/queue/read_ahead_kb
+
       - name: Run actions/checkout@v3 for synapse
         uses: actions/checkout@v3
         with:
           path: synapse
+
+      # - name: Run Docker on tmpfs
+      #   uses: JonasAlfredsson/docker-on-tmpfs@v1
+      #   with:
+      #     tmpfs_size: 5
 
       - name: Set up Docker Buildx
         id: buildx
@@ -568,43 +732,26 @@ jobs:
       - name: Prepare Complement's Prerequisites
         run: synapse/.ci/scripts/setup_complement_prerequisites.sh
 
-      - name: Download artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: synapse-prewarm
-          path: /tmp
-
-      - name: Load image
+      - name: Check Disk and Memory Free Space
         run: |
-          docker load --input /tmp/synapse-prewarm.tar
-          docker image ls -a
-
-      # - name: Build base
-        # uses: docker/build-push-action@v3
-        # with:
-          # context: .
-          # push: false
-          # file: "docker/Dockerfile-unified"
-          # tags: "synapse:latest"
-          # cache-from: type=gha
-          # cache-to: type=gha,mode=max
-
-      - name: Build Complement
-        uses: docker/build-push-action@v3
-        with:
-          context: ./synapse/docker/complement
-          push: false
-          load: true
-          file: "synapse/docker/complement/Dockerfile"
-          tags: "complement-synapse:latest"
-          # cache-from: type=gha
-          # cache-to: type=gha,mode=max
+          df -h
+          swapon --show
+          free -h
 
       - run: |
           set -o pipefail
-          POSTGRES=${{ (matrix.database == 'Postgres') && 1 || '' }} WORKERS=${{ (matrix.arrangement == 'workers') && 1 || '' }} COMPLEMENT_DIR=`pwd`/complement synapse/scripts-dev/complement.sh -f -json 2>&1 | synapse/.ci/scripts/gotestfmt
+          ASYNCIO_REACTOR=1 POSTGRES=${{ (matrix.database == 'Postgres') && 1 || '' }} WORKERS=${{ (matrix.arrangement == 'workers') && 1 || '' }} COMPLEMENT_DIR=`pwd`/complement synapse/scripts-dev/complement.sh -json 2>&1 | synapse/.ci/scripts/gotestfmt
         shell: bash
+        env:
+          SYNAPSE_TEST_LOG_LEVEL: DEBUG
+          PASS_SYNAPSE_POSTGRES_ENABLE_SYNCHRONOUS_COMMIT: false
         name: Run Complement Tests
+
+      - name: Check Disk and Memory Free Space
+        run: |
+          df -h
+          swapon --show
+          free -h
 
   cargo-test:
     if: ${{ needs.changes.outputs.rust == 'true' }}
@@ -636,6 +783,8 @@ jobs:
       - sytest
       - export-data
       - portdb
+      - complement-fed
+      - complement-csapi
       - complement
       - cargo-test
     runs-on: ubuntu-22.04

@@ -160,6 +160,7 @@ if [ -z "$skip_docker_build" ]; then
         docker build -t realtyem/synapse:latest \
         --build-arg TEST_ONLY_SKIP_DEP_HASH_VERIFICATION \
         --build-arg TEST_ONLY_IGNORE_POETRY_LOCKFILE \
+        --build-arg PYTHON_VERSION=3.11 \
           -f "docker/Dockerfile-unified" .
         echo_if_github "::endgroup::"
 
@@ -208,6 +209,7 @@ if [[ -n "$WORKERS" ]]; then
 
   # Workers can only use Postgres as a database.
   export PASS_SYNAPSE_COMPLEMENT_DATABASE=postgres
+  export PASS_POSTGRES_HOST=/var/run/postgresql
 
   # And provide some more configuration to complement.
 
@@ -219,6 +221,7 @@ else
   export PASS_SYNAPSE_COMPLEMENT_USE_WORKERS=
   if [[ -n "$POSTGRES" ]]; then
     export PASS_SYNAPSE_COMPLEMENT_DATABASE=postgres
+    export PASS_POSTGRES_HOST=/var/run/postgresql
   else
     export PASS_SYNAPSE_COMPLEMENT_DATABASE=sqlite
   fi
@@ -231,6 +234,12 @@ else
   test_tags="$test_tags,faster_joins,msc2716"
 fi
 
+if [[ -n "$ASYNCIO_REACTOR" ]]; then
+  # Enable the Twisted asyncio reactor
+  export PASS_SYNAPSE_COMPLEMENT_USE_ASYNCIO_REACTOR=true
+else
+  export PASS_SYNAPSE_COMPLEMENT_USE_ASYNCIO_REACTOR=
+fi
 
 if [[ -n "$SYNAPSE_TEST_LOG_LEVEL" ]]; then
   # Set the log level to what is desired

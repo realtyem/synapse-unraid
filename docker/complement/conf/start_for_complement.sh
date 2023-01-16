@@ -6,7 +6,8 @@ set -e
 
 echo "Complement Synapse launcher"
 echo "  Args: $@"
-echo "  Env: SYNAPSE_COMPLEMENT_DATABASE=$SYNAPSE_COMPLEMENT_DATABASE SYNAPSE_COMPLEMENT_USE_WORKERS=$SYNAPSE_COMPLEMENT_USE_WORKERS"
+echo "  Env: SYNAPSE_COMPLEMENT_DATABASE=$SYNAPSE_COMPLEMENT_DATABASE SYNAPSE_COMPLEMENT_USE_WORKERS=$SYNAPSE_COMPLEMENT_USE_WORKERS SYNAPSE_COMPLEMENT_USE_ASYNCIO_REACTOR=$SYNAPSE_COMPLEMENT_USE_ASYNCIO_REACTOR"
+
 
 function log {
     d=$(date +"%Y-%m-%d %H:%M:%S,%3N")
@@ -25,10 +26,10 @@ case "$SYNAPSE_COMPLEMENT_DATABASE" in
     # Set postgres authentication details which will be placed in the homeserver config file
     export POSTGRES_PASSWORD=somesecret
     export POSTGRES_USER=postgres
-    export POSTGRES_HOST=localhost
+    export POSTGRES_HOST="${POSTGRES_HOST:-localhost}"
 
     # configure supervisord to start postgres
-    export START_POSTGRES=true
+    export START_POSTGRES="${START_POSTGRES:-true}"
     ;;
 
   sqlite|"")
@@ -75,6 +76,15 @@ if [[ -n "$SYNAPSE_COMPLEMENT_USE_WORKERS" ]]; then
 else
   # Empty string here means 'main process only'
   export SYNAPSE_WORKER_TYPES=""
+fi
+if [[ -n "$SYNAPSE_COMPLEMENT_USE_ASYNCIO_REACTOR" ]]; then
+  if [[ -n $SYNAPSE_USE_EXPERIMENTAL_FORKING_LAUNCHER ]]; then
+    export SYNAPSE_COMPLEMENT_FORKING_LAUNCHER_ASYNCIO_REACTOR="1"
+  else
+    export SYNAPSE_ASYNC_IO_REACTOR="1"
+  fi
+else
+  export SYNAPSE_ASYNC_IO_REACTOR="0"
 fi
 
 
