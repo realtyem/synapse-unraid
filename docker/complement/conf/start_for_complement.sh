@@ -66,6 +66,9 @@ if [[ -n "$SYNAPSE_COMPLEMENT_USE_WORKERS" ]]; then
       appservice, \
       account_data, \
       to_device, \
+      presence, \
+      receipts, \
+      typing, \
       pusher"
 
   fi
