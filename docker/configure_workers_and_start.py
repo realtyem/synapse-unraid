@@ -314,7 +314,7 @@ PROMETHEUS_SCRAPE_CONFIG_BLOCK = """
 
 # Utility functions
 def log(txt: str) -> None:
-    print(txt)
+    print(txt, flush=True)
 
 
 def error(txt: str) -> NoReturn:
@@ -549,6 +549,38 @@ def generate_worker_files(
     # which exists even if no workers do.
     healthcheck_urls = ["http://localhost:8080/health"]
 
+    # Expand worker_type multiples if requested in shorthand(e.g. worker:2). Checking
+    # for not an actual defined type of worker is done later.
+    # checking preformed:
+    # 1. if worker:2 or more is declared, it will create additional workers up to number
+    # 2. if worker:0 is declared, this worker will be ignored.
+    # 3. if worker:1, it will create a single copy of this worker as if no number was
+    #   given
+    # 4. if worker:NaN or is a negative number, it will error and log it.
+    new_worker_types = []
+    for idx, worker_type in enumerate(worker_types):
+        if ":" in worker_type:
+            log("Found a worker asking for multiples: " + str(worker_type))
+            x = worker_type.split(":")
+            y = 0
+            if len(x) == 2 and x[-1].isdigit():
+                y = int(x[1])
+            else:
+                error(
+                    "Multiplier signal(:) for worker found, but incorrect components: "
+                    + worker_type
+                )
+
+            while y > 0:
+                new_worker_types.append(x[0])
+                y -= 1
+
+        else:
+            # If it's not a real worker, it will be error out below
+            new_worker_types.append(worker_type)
+
+    worker_types = new_worker_types
+    log("After processing: " + str(worker_types))
     # For each worker type specified by the user, create config values
     for worker_type in worker_types:
         worker_config = WORKERS_CONFIG.get(worker_type)
