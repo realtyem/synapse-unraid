@@ -558,7 +558,7 @@ def generate_worker_files(
     #   given
     # 4. if worker:NaN or is a negative number, it will error and log it.
     new_worker_types = []
-    for idx, worker_type in enumerate(worker_types):
+    for worker_type in worker_types:
         if ":" in worker_type:
             log("Found a worker asking for multiples: " + str(worker_type))
             x = worker_type.split(":")
