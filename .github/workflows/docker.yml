@@ -62,7 +62,6 @@ jobs:
           tags: "${{ steps.set-tag.outputs.tags }}"
           file: "docker/Dockerfile-unified"
           build-args: |
-            PYTHON_VERSION=3.11
             TEST_ONLY_IGNORE_BAD_POETRY_LOCKFILE=1
             CARGO_NET_GIT_FETCH_WITH_CLI=true
           platforms: linux/amd64
