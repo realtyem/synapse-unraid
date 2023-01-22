@@ -838,7 +838,10 @@ def generate_worker_files(
         # Some endpoints should be load-balanced by client IP. This way, if it comes
         # from the same IP, it goes to the same worker and should be a smarter way to
         # cache data. This works well for federation.
-        if any(x in worker_type_load_balance_ip_list for x in upstream_worker_type.split("+")):
+        if any(
+            x in worker_type_load_balance_ip_list
+            for x in upstream_worker_type.split("+")
+        ):
             nginx_upstream_config += (
                 NGINX_UPSTREAM_HASH_BY_CLIENT_IP_CONFIG_BLOCK.format(
                     upstream_worker_type=upstream_worker_type,
@@ -848,7 +851,10 @@ def generate_worker_files(
         # Some endpoints should be load-balanced by Authorization header. This means
         # that even with a different IP, a user should get the same data from the same
         # upstream source, like a synchrotron worker, with smarter caching of data.
-        elif any(x in worker_type_load_balance_header_list for x in upstream_worker_type.split("+")):
+        elif any(
+            x in worker_type_load_balance_header_list
+            for x in upstream_worker_type.split("+")
+        ):
             nginx_upstream_config += NGINX_UPSTREAM_HASH_BY_AUTH_HEADER_BLOCK.format(
                 upstream_worker_type=upstream_worker_type,
                 body=body,
