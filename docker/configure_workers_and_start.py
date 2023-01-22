@@ -19,10 +19,10 @@
 # The environment variables it reads are:
 #   * SYNAPSE_SERVER_NAME: The desired server_name of the homeserver.
 #   * SYNAPSE_REPORT_STATS: Whether to report stats.
-#   * SYNAPSE_WORKER_TYPES: A comma separated list of worker names as specified in WORKER_CONFIG
-#         below. Leave empty for no workers.
-#   * SYNAPSE_AS_REGISTRATION_DIR: If specified, a directory in which .yaml and .yml files
-#         will be treated as Application Service registration files.
+#   * SYNAPSE_WORKER_TYPES: A comma separated list of worker names as specified in
+#         WORKER_CONFIG below. Leave empty for no workers.
+#   * SYNAPSE_AS_REGISTRATION_DIR: If specified, a directory in which .yaml and .yml
+#         files will be treated as Application Service registration files.
 #   * SYNAPSE_TLS_CERT: Path to a TLS certificate in PEM format.
 #   * SYNAPSE_TLS_KEY: Path to a TLS key. If this and SYNAPSE_TLS_CERT are specified,
 #         Nginx will be configured to serve TLS on port 8448.
@@ -34,12 +34,11 @@
 #   * SYNAPSE_LOG_SENSITIVE: If unset, SQL and SQL values won't be logged,
 #         regardless of the SYNAPSE_LOG_LEVEL setting.
 #
-# NOTE: According to Complement's ENTRYPOINT expectations for a homeserver image (as defined
-# in the project's README), this script may be run multiple times, and functionality should
-# continue to work if so.
+# NOTE: According to Complement's ENTRYPOINT expectations for a homeserver image (as
+# defined in the project's README), this script may be run multiple times, and
+# functionality should continue to work if so.
 
 import codecs
-import json
 import os
 import platform
 import shutil
@@ -61,7 +60,8 @@ enable_prometheus = False
 enable_redis_exporter = False
 enable_postgres_exporter = False
 
-# Workers with exposed endpoints needs either "client", "federation", or "media" listener_resources
+# Workers with exposed endpoints needs either "client", "federation", or "media"
+#   listener_resources
 # Watching /_matrix/client needs a "client" listener
 # Watching /_matrix/federation needs a "federation" listener
 # Watching /_matrix/media and related needs a "media" listener
@@ -204,8 +204,8 @@ WORKERS_CONFIG: Dict[str, Dict[str, Any]] = {
         "app": "synapse.app.generic_worker",
         "listener_resources": [],
         "endpoint_patterns": [],
-        # This worker cannot be sharded. Therefore there should only ever be one background
-        # worker, and it should be named background_worker1
+        # This worker cannot be sharded. Therefore, there should only ever be one
+        # background worker.
         "shared_extra_conf": {"run_background_tasks_on": "insert_worker_name"},
         "worker_extra_conf": "",
     },
@@ -301,7 +301,7 @@ upstream {upstream_worker_type} {{
 
 NGINX_UPSTREAM_HASH_BY_AUTH_HEADER_BLOCK = """
 upstream {upstream_worker_type} {{
-    hash $http_authorization;
+    hash $http_authorization consistent;
 {body}
 }}
 """
@@ -336,7 +336,8 @@ def convert(src: str, dst: str, **template_vars: object) -> None:
     Args:
         src: Path to the input file.
         dst: Path to write to.
-        template_vars: The arguments to replace placeholder variables in the template with.
+        template_vars: The arguments to replace placeholder variables in the template
+            with.
     """
     # Read the template file
     # We disable autoescape to prevent template variables from being escaped,
@@ -349,8 +350,8 @@ def convert(src: str, dst: str, **template_vars: object) -> None:
 
     # Write the generated contents to a file
     #
-    # We use append mode in case the files have already been written to by something else
-    # (for instance, as part of the instructions in a dockerfile).
+    # We use append mode in case the files have already been written to by something
+    # else (for instance, as part of the instructions in a dockerfile).
     with open(dst, "a") as outfile:
         # In case the existing file doesn't end with a newline
         outfile.write("\n")
@@ -758,8 +759,6 @@ def generate_worker_files(
         add_worker_roles_to_shared_config(
             shared_config, worker_type, worker_name, worker_port
         )
-        # log("worker_config at this point: " + json.dumps(worker_config, indent=4))
-        # log("shared config at this point: " + json.dumps(shared_config, indent=4))
 
         # Enable the worker in supervisord
         worker_descriptors.append(worker_config)
@@ -780,7 +779,6 @@ def generate_worker_files(
             nginx_locations[pattern] = upstream
 
         # Write out the worker's logging config file
-
         log_config_filepath = generate_worker_log_config(environ, worker_name, data_dir)
 
         # Then a worker config file
@@ -806,32 +804,63 @@ def generate_worker_files(
     # Determine the load-balancing upstreams to configure
     nginx_upstream_config = ""
 
+    worker_type_load_balance_header_list = ["synchrotron"]
+    worker_type_load_balance_ip_list = ["federation_inbound"]
+
     for upstream_worker_type, upstream_worker_ports in nginx_upstreams.items():
         body = ""
         for port in upstream_worker_ports:
             body += "    server localhost:%d;\n" % (port,)
+        log("upstream_worker_type: " + upstream_worker_type)
 
-        # Add to the list of configured upstreams
-        # Some endpoints should be load-balanced by client IP, use special block for them
-        if worker_type in ("federation_inbound"):
+        # This presents a dilemma. Some endpoints are better load-balanced by
+        # Authorization header, and some by remote IP. What do you do if a combo
+        # worker was requested that has endpoints for both? As it is likely but not
+        # impossible that a user will be on the same IP if they have multiple
+        # devices(like at home on Wi-Fi), I believe that balancing by IP would be the
+        # broader reaching choice. This is probably only slightly better than
+        # round-robin. As such, leave balancing by remote IP as the first of the
+        # conditionals below, so if both would apply the first is used.
+
+        # Three additional notes:
+        #   1. Federation endpoints shouldn't (necessarily) have Authorization headers,
+        #       so using them on these endpoints would be a moot point.
+        #   2. For Complement, this situation is reversed as there is only ever a single
+        #       IP used during tests, 127.0.0.1.
+        #   3. IIRC, it may be possible to hash by both at once, or at least have both
+        #       hashes on the same line. If I understand that correctly, the one that
+        #       doesn't exist is effectively ignored. However, that requires increasing
+        #       the hashmap size in the nginx master config file, which would take more
+        #       jinja templating(or at least a 'sed'), and may not be accepted upstream.
+        #       Based on previous experiments, increasing this value was required for
+        #       hashing by room id, so may end up being a path forward anyway.
+
+        # Some endpoints should be load-balanced by client IP. This way, if it comes
+        # from the same IP, it goes to the same worker and should be a smarter way to
+        # cache data. This works well for federation.
+        if any(x in worker_type_load_balance_ip_list for x in upstream_worker_type.split("+")):
             nginx_upstream_config += (
                 NGINX_UPSTREAM_HASH_BY_CLIENT_IP_CONFIG_BLOCK.format(
                     upstream_worker_type=upstream_worker_type,
                     body=body,
                 )
             )
-        elif worker_type in ("synchrotron"):
+        # Some endpoints should be load-balanced by Authorization header. This means
+        # that even with a different IP, a user should get the same data from the same
+        # upstream source, like a synchrotron worker, with smarter caching of data.
+        elif any(x in worker_type_load_balance_header_list for x in upstream_worker_type.split("+")):
             nginx_upstream_config += NGINX_UPSTREAM_HASH_BY_AUTH_HEADER_BLOCK.format(
                 upstream_worker_type=upstream_worker_type,
                 body=body,
             )
-
+        # Everything else, just use the default basic round-robin scheme.
         else:
             nginx_upstream_config += NGINX_UPSTREAM_CONFIG_BLOCK.format(
                 upstream_worker_type=upstream_worker_type,
                 body=body,
             )
 
+    log("nginx_upstream_config block: " + nginx_upstream_config)
     # Setup the metric end point locations, names and indexes
     prom_endpoint_config = ""
     for worker in worker_descriptors:
@@ -1032,8 +1061,8 @@ def main(args: List[str], environ: MutableMapping[str, str]) -> None:
         log("Generating base homeserver config")
         generate_base_homeserver_config()
 
-    # This script may be run multiple times (mostly by Complement, see note at top of file).
-    # Don't re-configure workers in this instance.
+    # This script may be run multiple times (mostly by Complement, see note at top of
+    # file). Don't re-configure workers in this instance.
     mark_filepath = "/conf/workers_have_been_configured"
     if not os.path.exists(mark_filepath):
         # This gets added here instead of above so it only runs one time.
