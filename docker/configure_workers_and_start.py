@@ -39,6 +39,7 @@
 # continue to work if so.
 
 import codecs
+import json
 import os
 import platform
 import shutil
@@ -80,7 +81,7 @@ WORKERS_CONFIG: Dict[str, Dict[str, Any]] = {
         "endpoint_patterns": [
             "^/_matrix/client/(api/v1|r0|v3|unstable)/user_directory/search$"
         ],
-        "shared_extra_conf": {"update_user_directory_from_worker": "user_dir1"},
+        "shared_extra_conf": {"update_user_directory_from_worker": "insert_worker_name"},
         "worker_extra_conf": "",
     },
     "media_repository": {
@@ -97,7 +98,7 @@ WORKERS_CONFIG: Dict[str, Dict[str, Any]] = {
         # The first configured media worker will run the media background jobs
         "shared_extra_conf": {
             "enable_media_repo": False,
-            "media_instance_running_background_jobs": "media_repository1",
+            "media_instance_running_background_jobs": "insert_worker_name",
         },
         "worker_extra_conf": "enable_media_repo: true",
     },
@@ -105,7 +106,7 @@ WORKERS_CONFIG: Dict[str, Dict[str, Any]] = {
         "app": "synapse.app.generic_worker",
         "listener_resources": [],
         "endpoint_patterns": [],
-        "shared_extra_conf": {"notify_appservices_from_worker": "appservice1"},
+        "shared_extra_conf": {"notify_appservices_from_worker": "insert_worker_name"},
         "worker_extra_conf": "",
     },
     "federation_sender": {
@@ -203,7 +204,7 @@ WORKERS_CONFIG: Dict[str, Dict[str, Any]] = {
         "endpoint_patterns": [],
         # This worker cannot be sharded. Therefore there should only ever be one background
         # worker, and it should be named background_worker1
-        "shared_extra_conf": {"run_background_tasks_on": "background_worker1"},
+        "shared_extra_conf": {"run_background_tasks_on": "insert_worker_name"},
         "worker_extra_conf": "",
     },
     "event_creator": {
@@ -318,7 +319,7 @@ def log(txt: str) -> None:
 
 
 def error(txt: str) -> NoReturn:
-    print(txt, file=sys.stderr)
+    print(txt, file=sys.stderr, flush=True)
     sys.exit(2)
 
 
@@ -369,22 +370,35 @@ def add_worker_roles_to_shared_config(
     append appropriate worker information to it for the current worker_type instance.
 
     Args:
-        shared_config: The config dict that all worker instances share (after being converted to YAML)
-        worker_type: The type of worker (one of those defined in WORKERS_CONFIG).
+        shared_config: The config dict that all worker instances share (after being
+            converted to YAML)
+        worker_type: The type of worker (one of those defined in WORKERS_CONFIG). This
+            can be list of several types of differing worker concatenated with a '+'.
         worker_name: The name of the worker instance.
         worker_port: The HTTP replication port that the worker instance is listening on.
     """
-    # The instance_map config field marks the workers that write to various replication streams
+    # The instance_map config field marks the workers that write to various replication
+    # streams
     instance_map = shared_config.setdefault("instance_map", {})
 
-    # Worker-type specific sharding config
-    if worker_type == "pusher":
+    # This is a list of the stream_writers that there can be only one of. Events can be
+    # sharded, and therefore doesn't belong here.
+    singular_stream_writers = [
+        "account_data", "presence", "receipts", "to_device", "typing"
+    ]
+
+    # Split list by separator. If separator not found put single item in new list.
+    worker_type_split = worker_type.split("+")
+
+    # Worker-type specific sharding config. Since now a single worker can fulfill
+    # multiple roles, check each.
+    if "pusher" in worker_type_split:
         shared_config.setdefault("pusher_instances", []).append(worker_name)
 
-    elif worker_type == "federation_sender":
+    if "federation_sender" in worker_type_split:
         shared_config.setdefault("federation_sender_instances", []).append(worker_name)
 
-    elif worker_type == "event_persister":
+    if "event_persister" in worker_type_split:
         # Event persisters write to the events stream, so we need to update
         # the list of event stream writers
         shared_config.setdefault("stream_writers", {}).setdefault("events", []).append(
@@ -397,19 +411,73 @@ def add_worker_roles_to_shared_config(
             "port": worker_port,
         }
 
-    elif worker_type in ["account_data", "presence", "receipts", "to_device", "typing"]:
-        # Update the list of stream writers
-        # It's convenient that the name of the worker type is the same as the stream to write
-        shared_config.setdefault("stream_writers", {}).setdefault(
-            worker_type, []
-        ).append(worker_name)
+    # Update the list of stream writers. It's convenient that the name of the worker
+    # type is the same as the stream to write. Iterate over the whole list in case there
+    # is more than one.
+    for worker in worker_type_split:
+        if worker in singular_stream_writers:
+            shared_config.setdefault("stream_writers", {}).setdefault(
+                worker, []
+            ).append(worker_name)
 
-        # Map of stream writer instance names to host/ports combos
-        # For now, all stream writers need http replication ports
-        instance_map[worker_name] = {
-            "host": "localhost",
-            "port": worker_port,
-        }
+            # Map of stream writer instance names to host/ports combos
+            # For now, all stream writers need http replication ports
+            instance_map[worker_name] = {
+                "host": "localhost",
+                "port": worker_port,
+            }
+
+
+def merge_worker_configs(
+    existing_dict: Dict[str, Any], to_be_merged_dict: Dict[str, Any],
+) -> Dict[str, Any]:
+    new_dict: Dict[str, Any] = {}
+    for i in to_be_merged_dict.keys():
+        if (i == "endpoint_patterns") or (i == "listener_resources"):
+            # merge the two lists, remove duplicates
+            new_dict[i] = list(set(existing_dict[i] + to_be_merged_dict[i]))
+        elif i == "shared_extra_conf":
+            # merge dictionary's, the worker name will be replaced below after counting
+            new_dict[i] = {**existing_dict[i], **to_be_merged_dict[i]}
+        elif i == "worker_extra_conf":
+            # there is only one worker type that has a 'worker_extra_conf' and it is
+            # the media_repo.
+            new_dict[i] = existing_dict[i] + to_be_merged_dict[i]
+        else:
+            # everything else should be identical
+            new_dict[i] = to_be_merged_dict[i]
+    return new_dict
+
+
+def insert_worker_name_for_shared_extra_conf(
+    dict_to_edit: Dict[str, Any], worker_name: str
+) -> Dict[str, Any]:
+    for k, v in dict_to_edit["shared_extra_conf"].items():
+        # Only proceed if it's a string as some values are boolean
+        if isinstance(dict_to_edit["shared_extra_conf"][k], str):
+            # This will be ignored if the text isn't correct.
+            dict_to_edit["shared_extra_conf"][k] = v.replace(
+                "insert_worker_name", worker_name
+            )
+    return dict_to_edit
+
+
+def check_if_special_worker_already_defined(
+    worker_types_special_counter: Dict[str, int], worker_type: str
+) -> None:
+    if worker_type in worker_types_special_counter:
+        if worker_type in [
+            "background_worker", "account_data", "presence", "receipts", "typing",
+            "to_device", "user_dir",
+        ]:
+            error("There can be only ONE! (" + worker_type + " type) Please remove.")
+        elif worker_type in ["appservice", "media_repository"]:
+            log(
+                "Already have one " + worker_type
+                + ". Using last seen in shared configuration."
+            )
+    new_worker_count = worker_types_special_counter.setdefault(worker_type, 0) + 1
+    worker_types_special_counter[worker_type] = new_worker_count
 
 
 def generate_base_homeserver_config() -> None:
@@ -444,8 +512,8 @@ def generate_worker_files(
 
     # shared_config is the contents of a Synapse config file that will be shared amongst
     # the main Synapse process as well as all workers.
-    # It is intended mainly for disabling functionality when certain workers are spun up,
-    # and adding a replication listener.
+    # It is intended mainly for disabling functionality when certain workers are spun
+    # up, and adding a replication listener.
 
     # pass through global variables for the add-ons
     # the auto compressor is taken care of in main
@@ -453,9 +521,9 @@ def generate_worker_files(
     global enable_redis_exporter
     enable_manhole_workers = getenv_bool("SYNAPSE_MANHOLE_WORKERS", False)
 
-    # First read the original config file and extract the listeners block. Then we'll add
-    # another listener for replication. Later we'll write out the result to the shared
-    # config file.
+    # First read the original config file and extract the listeners block. Then we'll
+    # add another listener for replication. Later we'll write out the result to the
+    # shared config file.
     listeners = [
         {
             "port": 9093,
@@ -472,10 +540,10 @@ def generate_worker_files(
 
     # Only activate the manhole if the environment says to do so. SYNAPSE_MANHOLE_MASTER
     if getenv_bool("SYNAPSE_MANHOLE_MASTER", False):
-        # The manhole listener is basically the same as other listeners. Needs a type "manhole".
-        # The workers have ports starting with 17009, so we'll take one just prior to that. In
-        # practice, we don't need to bind address because we are in docker and are not going
-        # to expose this outside.
+        # The manhole listener is basically the same as other listeners. Needs a type
+        # "manhole". The workers have ports starting with 17009, so we'll take one just
+        # prior to that. In practice, we don't need to bind address because we are in
+        # docker and are not going to expose this outside.
         manhole_listener = [
             {
                 "type": "manhole",
@@ -495,18 +563,18 @@ def generate_worker_files(
     # program blocks.
     worker_descriptors: List[Dict[str, Any]] = []
 
-    # Upstreams for load-balancing purposes. This dict takes the form of a worker type to the
-    # ports of each worker. For example:
+    # Upstreams for load-balancing purposes. This dict takes the form of a worker type
+    # to the ports of each worker. For example:
     # {
     #   worker_type: {1234, 1235, ...}}
     # }
     # and will be used to construct 'upstream' nginx directives.
     nginx_upstreams: Dict[str, Set[int]] = {}
 
-    # A map of: {"endpoint": "upstream"}, where "upstream" is a str representing what will be
-    # placed after the proxy_pass directive. The main benefit to representing this data as a
-    # dict over a str is that we can easily deduplicate endpoints across multiple instances
-    # of the same worker.
+    # A map of: {"endpoint": "upstream"}, where "upstream" is a str representing what
+    # will be placed after the proxy_pass directive. The main benefit to representing
+    # this data as a dict over a str is that we can easily deduplicate endpoints across
+    # multiple instances of the same worker.
     #
     # An nginx site config that will be amended to depending on the workers that are
     # spun up. To be placed in /etc/nginx/conf.d.
@@ -514,11 +582,23 @@ def generate_worker_files(
 
     # Read the desired worker configuration from the environment
     worker_types_env = environ.get("SYNAPSE_WORKER_TYPES", "").strip()
+    # Some shortcuts.
     if worker_types_env == "full":
-        worker_types_env = "account_data,background_worker,event_creator,event_persister,federation_inbound,federation_reader,federation_sender,frontend_proxy,media_repository,presence,pusher,receipts,to_device,typing,synchrotron,user_dir"
+        worker_types_env = "account_data,background_worker,event_creator," \
+                           "event_persister,federation_inbound,federation_reader," \
+                           "federation_sender,frontend_proxy,media_repository," \
+                           "presence,pusher,receipts,to_device,typing,synchrotron," \
+                           "user_dir"
 
     if worker_types_env == "BLOW_IT_UP":
-        worker_types_env = "account_data, background_worker, client_reader, client_reader, event_creator, event_persister, event_persister, federation_inbound, federation_reader, federation_reader, federation_sender, federation_sender, federation_sender, frontend_proxy, media_repository, presence, pusher, pusher, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, synchrotron, to_device, typing, user_dir"
+        # 500 Postgres connections means about 48 workers. Challenge accepted.
+        # Note: my machine only seems to be ok with 45 workers, so use that.
+        worker_types_env = "account_data+presence+receipts+to_device+typing, " \
+                           "background_worker, client_reader:2, event_creator:2, " \
+                           "event_persister:5, federation_inbound:4, " \
+                           "federation_reader:4, federation_sender:16, " \
+                           "frontend_proxy, media_repository:2, pusher:2, " \
+                           "synchrotron:4, user_dir"
 
     if not worker_types_env:
         # No workers, just the main process
@@ -542,8 +622,12 @@ def generate_worker_files(
 
     # A counter of worker_type -> int. Used for determining the name for a given
     # worker type when generating its config file, as each worker's name is just
-    # worker_type + instance #
+    # worker_type(s) + instance #
     worker_type_counter: Dict[str, int] = {}
+
+    # Similar to above, but more finely grained. This is used to determine we don't have
+    # more than a single worker for cases where multiples would be bad(e.g. presence).
+    worker_type_special_counter: Dict[str, int] = {}
 
     # A list of internal endpoints to healthcheck, starting with the main process
     # which exists even if no workers do.
@@ -553,16 +637,18 @@ def generate_worker_files(
     # for not an actual defined type of worker is done later.
     # checking preformed:
     # 1. if worker:2 or more is declared, it will create additional workers up to number
-    # 2. if worker:0 is declared, this worker will be ignored.
-    # 3. if worker:1, it will create a single copy of this worker as if no number was
+    # 2. if worker:1, it will create a single copy of this worker as if no number was
     #   given
+    # 3. if worker:0 is declared, this worker will be ignored. This is to allow for
+    #   scripting and automated expansion and is intended behaviour.
     # 4. if worker:NaN or is a negative number, it will error and log it.
     new_worker_types = []
     for worker_type in worker_types:
         if ":" in worker_type:
-            log("Found a worker asking for multiples: " + str(worker_type))
             x = worker_type.split(":")
             y = 0
+            # should only be 2 components, a type of worker(s) and an integer as a
+            # string. Cast the number as an int so we can use it for maths.
             if len(x) == 2 and x[-1].isdigit():
                 y = int(x[1])
             else:
@@ -570,31 +656,62 @@ def generate_worker_files(
                     "Multiplier signal(:) for worker found, but incorrect components: "
                     + worker_type
                 )
-
+            # As long as there are more than 0, we add one to the list to make below.
             while y > 0:
                 new_worker_types.append(x[0])
                 y -= 1
-
         else:
-            # If it's not a real worker, it will be error out below
+            # If it's not a real worker, it will error out below
             new_worker_types.append(worker_type)
 
     worker_types = new_worker_types
-    log("After processing: " + str(worker_types))
     # For each worker type specified by the user, create config values
     for worker_type in worker_types:
-        worker_config = WORKERS_CONFIG.get(worker_type)
-        if worker_config:
-            worker_config = worker_config.copy()
-        else:
-            error(worker_type + " is an unknown worker type! Please fix!")
+        # pre-template the worker_config so when updating we don't get a KeyError
+        worker_config: Dict[str, Any] = {
+            "app": "", "listener_resources": [], "endpoint_patterns": [],
+            "shared_extra_conf": {}, "worker_extra_conf": ""}
 
+        workers_to_combo = worker_type.split("+")
+        # check for duplicates in the list. No advantage in having duplicated worker
+        # types on the same worker.
+        if len(workers_to_combo) != len(set(workers_to_combo)):
+            error("Duplicate worker type found in " + worker_type + "! Please fix.")
+
+        for w in workers_to_combo:
+            # verify this is a real defined worker type. If it's not, stop everything so
+            # it can be fixed.
+            copy_of_template_config = WORKERS_CONFIG.get(w)
+            if copy_of_template_config:
+                copy_of_template_config = copy_of_template_config.copy()
+            else:
+                error(
+                    w + "is an unknown worker type! Was part of " + worker_type
+                    + ". Please fix!"
+                )
+
+            # find out if there is to many of a worker there can only be one of.
+            # Will error and stop if it is a problem, like for a stream_writer.
+            check_if_special_worker_already_defined(worker_type_special_counter, w)
+
+            # take each config template and merge in an "appendy" way
+            worker_config = merge_worker_configs(
+                worker_config, copy_of_template_config
+            )
+
+        # This counter is used for names and metrics indexing
         new_worker_count = worker_type_counter.setdefault(worker_type, 0) + 1
         worker_type_counter[worker_type] = new_worker_count
 
         # Name workers by their type concatenated with an incrementing number
-        # e.g. federation_reader1
+        # e.g. federation_reader1 or event_creator+event_persister1
         worker_name = worker_type + str(new_worker_count)
+
+        # Replace placeholder names in the config with the actual worker name.
+        worker_config = insert_worker_name_for_shared_extra_conf(
+            worker_config, worker_name
+        )
+
         worker_config.update(
             {
                 "name": worker_name,
@@ -616,10 +733,12 @@ def generate_worker_files(
         # Check if more than one instance of this worker type has been specified
         worker_type_total_count = worker_types.count(worker_type)
 
-        # Update the shared config with sharding-related options if necessary
+        # Update the shared config with any sharding-related options
         add_worker_roles_to_shared_config(
             shared_config, worker_type, worker_name, worker_port
         )
+        # log("worker_config at this point: " + json.dumps(worker_config, indent=4))
+        # log("shared config at this point: " + json.dumps(shared_config, indent=4))
 
         # Enable the worker in supervisord
         worker_descriptors.append(worker_config)
