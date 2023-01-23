@@ -702,7 +702,12 @@ def generate_worker_files(
                 error("To many worker names requested for a single worker! Please fix.")
             user_requested_worker_name = worker_type_split[0]
             worker_type = worker_type_split[1]
-            log("User requested name found: " + user_requested_worker_name + " for " + worker_type)
+            log(
+                "User requested name found: "
+                + user_requested_worker_name
+                + " for "
+                + worker_type
+            )
 
         workers_to_combo = worker_type.split("+")
         # check for duplicates in the list. No advantage in having duplicated worker
@@ -742,7 +747,6 @@ def generate_worker_files(
             worker_name = user_requested_worker_name + str(new_worker_count)
         else:
             worker_name = worker_type + str(new_worker_count)
-
 
         # Replace placeholder names in the config with the actual worker name.
         worker_config = insert_worker_name_for_shared_extra_conf(
