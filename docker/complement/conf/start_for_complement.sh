@@ -63,7 +63,7 @@ if [[ -n "$SYNAPSE_COMPLEMENT_USE_WORKERS" ]]; then
       synchrotron, \
       client_reader, \
       appservice, \
-      account_data+to_device+presence+receipts+typing, \
+      stream_writers=account_data+to_device+presence+receipts+typing, \
       pusher"
 
   fi

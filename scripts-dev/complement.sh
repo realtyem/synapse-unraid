@@ -214,7 +214,7 @@ if [[ -n "$WORKERS" ]]; then
   # It can take quite a while to spin up a worker-mode Synapse for the first
   # time (the main problem is that we start 14 python processes for each test,
   # and complement likes to do two of them in parallel).
-  export COMPLEMENT_SPAWN_HS_TIMEOUT_SECS=120
+  export COMPLEMENT_SPAWN_HS_TIMEOUT_SECS="${COMPLEMENT_SPAWN_HS_TIMEOUT_SECS:-120}"
 else
   export PASS_SYNAPSE_COMPLEMENT_USE_WORKERS=
   if [[ -n "$POSTGRES" ]]; then

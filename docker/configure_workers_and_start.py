@@ -481,10 +481,9 @@ def check_if_special_worker_already_defined(
             "receipts",
             "typing",
             "to_device",
-            "user_dir",
         ]:
             error("There can be only ONE! (" + worker_type + " type) Please remove.")
-        elif worker_type in ["appservice", "media_repository"]:
+        elif worker_type in ["appservice", "media_repository", "user_dir"]:
             log(
                 "Already have one "
                 + worker_type
@@ -682,6 +681,7 @@ def generate_worker_files(
             # If it's not a real worker, it will error out below
             new_worker_types.append(worker_type)
 
+    # worker_types is now an expanded list of worker types.
     worker_types = new_worker_types
     # For each worker type specified by the user, create config values
     for worker_type in worker_types:
@@ -693,6 +693,16 @@ def generate_worker_files(
             "shared_extra_conf": {},
             "worker_extra_conf": "",
         }
+
+        # Peel off any name designated before an equal sign to use later.
+        user_requested_worker_name = ""
+        if "=" in worker_type:
+            worker_type_split = worker_type.split("=")
+            if len(worker_type_split) > 2:
+                error("To many worker names requested for a single worker! Please fix.")
+            user_requested_worker_name = worker_type_split[0]
+            worker_type = worker_type_split[1]
+            log("User requested name found: " + user_requested_worker_name + " for " + worker_type)
 
         workers_to_combo = worker_type.split("+")
         # check for duplicates in the list. No advantage in having duplicated worker
@@ -727,7 +737,12 @@ def generate_worker_files(
 
         # Name workers by their type concatenated with an incrementing number
         # e.g. federation_reader1 or event_creator+event_persister1
-        worker_name = worker_type + str(new_worker_count)
+        # unless a requested name was found
+        if user_requested_worker_name:
+            worker_name = user_requested_worker_name + str(new_worker_count)
+        else:
+            worker_name = worker_type + str(new_worker_count)
+
 
         # Replace placeholder names in the config with the actual worker name.
         worker_config = insert_worker_name_for_shared_extra_conf(
