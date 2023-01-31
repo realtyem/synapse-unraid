@@ -46,7 +46,7 @@ jobs:
         with:
           images: ${{ secrets.DOCKERHUB_USERNAME }}/synapse
           flavor: |
-            latest=false
+            latest=auto
           tags: |
             type=ref,event=tag
             type=semver,pattern={{version}}
