@@ -48,9 +48,8 @@ jobs:
           flavor: |
             latest=auto
           tags: |
-            type=ref,event=tag
-            type=semver,pattern={{version}}
-            type=raw,value=develop,enable=${{ github.ref == format('refs/heads/{0}', 'unraid_develop') }}
+            type=pep440,pattern={{raw}}
+            type=raw,value=develop,enable=${{ github.ref == 'refs/heads/unraid_develop' }}
             type=raw,value=${{ github.ref_name }},enable=${{ github.ref != 'refs/heads/unraid_develop' }}
 
       - name: Build and push to repo
@@ -65,7 +64,7 @@ jobs:
           tags: "${{ steps.set-tag.outputs.tags }}"
           file: "docker/Dockerfile-unified"
           build-args: |
-            TEST_ONLY_IGNORE_BAD_POETRY_LOCKFILE=1
+            TEST_ONLY_IGNORE_POETRY_LOCKFILE=
             CARGO_NET_GIT_FETCH_WITH_CLI=true
           platforms: linux/amd64
           cache-from: type=gha
