@@ -1024,7 +1024,7 @@ def generate_worker_files(
     prom_endpoint_config = ""
     for worker in worker_descriptors:
         prom_endpoint_config += PROMETHEUS_SCRAPE_CONFIG_BLOCK.format(
-            name=worker["type"],
+            name=worker["name"],
             metrics_port=worker["metrics_port"],
             index=worker["index"],
         )
