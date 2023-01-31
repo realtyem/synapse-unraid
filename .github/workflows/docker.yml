@@ -4,8 +4,10 @@ name: Build docker images
 
 on:
   push:
-    tags: ["v*"]
-    branches: [ "unraid_develop" ]
+    tags:
+      - "v*"
+    branches:
+      - "unraid_develop"
   workflow_dispatch:
 
 concurrency:
@@ -46,8 +48,10 @@ jobs:
           flavor: |
             latest=${{ github.ref == 'refs/heads/unraid_develop' }}
           tags: |
+            type=ref,event=branch
+            type=ref,event=tag
+            type=semver,pattern={{version}}
             type=raw,value=${{ github.ref_name }},enable=${{ github.ref != 'refs/heads/unraid_develop' }}
-            type=pep440,pattern={{raw}}
 
       - name: Build and push to repo
 
