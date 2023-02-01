@@ -831,6 +831,7 @@ def generate_worker_files(
 
         # Name workers by their type or requested name concatenated with an
         # incrementing number. e.g. federation_reader1 or event_creator+event_persister1
+        worker_base_name: str
         if requested_worker_name:
             worker_base_name = requested_worker_name
             # It'll be useful to have this in the log in case it's a complex of many
@@ -888,6 +889,7 @@ def generate_worker_files(
         worker_config.update(
             {
                 "name": worker_name,
+                "group": worker_base_name,
                 "type": worker_type,
                 "port": str(worker_port),
                 "metrics_port": str(worker_metrics_port),
@@ -1024,7 +1026,7 @@ def generate_worker_files(
     prom_endpoint_config = ""
     for worker in worker_descriptors:
         prom_endpoint_config += PROMETHEUS_SCRAPE_CONFIG_BLOCK.format(
-            name=worker["name"],
+            name=worker["group"],
             metrics_port=worker["metrics_port"],
             index=worker["index"],
         )
