@@ -923,10 +923,10 @@ def generate_worker_files(
             # Determine whether we need to load-balance this worker
             if worker_type_total_count > 1:
                 # Create or add to a load-balanced upstream for this worker
-                nginx_upstreams.setdefault(worker_type, set()).add(worker_port)
+                nginx_upstreams.setdefault(worker_base_name, set()).add(worker_port)
 
                 # Upstreams are named after the worker_type
-                upstream = "http://" + worker_type
+                upstream = "http://" + worker_base_name
             else:
                 upstream = "http://localhost:%d" % (worker_port,)
 
