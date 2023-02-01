@@ -53,8 +53,7 @@ jobs:
             type=raw,value=${{ github.ref_name }},enable=${{ github.ref != 'refs/heads/unraid_develop' }}
 
       - name: Build and push to repo
-
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v4
         with:
           push: true
           context: .
