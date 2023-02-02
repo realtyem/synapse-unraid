@@ -55,7 +55,7 @@ jobs:
       complement_stream_writers_test_matrix: ${{ steps.get-matrix.outputs.complement_stream_writers_test_matrix}}
 
   singles:
-    name: "Singles"
+    name: ${{ matrix.job.test_name }}
     runs-on: ubuntu-latest
     needs: calculate-test-jobs
     strategy:
@@ -114,7 +114,7 @@ jobs:
           REACTOR: ${{ matrix.job.reactor }}
         run: |
           set -o pipefail
-          COMPLEMENT_DIR=`pwd`/complement synapse/scripts-dev/complement-extended.sh -f -json 2>&1 | synapse/.ci/scripts/gotestfmt
+          COMPLEMENT_DIR=`pwd`/complement synapse/scripts-dev/complement.sh -f -json 2>&1 | synapse/.ci/scripts/gotestfmt
 
 #  stage_one_done:
 #    name: "Stage One Done"
@@ -188,7 +188,7 @@ jobs:
           SYNAPSE_WORKER_TYPES: ${{ matrix.job.worker_types }}
         run: |
           set -o pipefail
-          COMPLEMENT_DIR=`pwd`/complement synapse/scripts-dev/complement-extended.sh -f -json 2>&1 | synapse/.ci/scripts/gotestfmt
+          COMPLEMENT_DIR=`pwd`/complement synapse/scripts-dev/complement.sh -f -json 2>&1 | synapse/.ci/scripts/gotestfmt
 
   stream_writers:
     name: "All Stream Writers"
@@ -249,7 +249,7 @@ jobs:
           SYNAPSE_WORKER_TYPES: ${{ matrix.job.worker_types }}
         run: |
           set -o pipefail
-          COMPLEMENT_DIR=`pwd`/complement synapse/scripts-dev/complement-extended.sh -f -json 2>&1 | synapse/.ci/scripts/gotestfmt
+          COMPLEMENT_DIR=`pwd`/complement synapse/scripts-dev/complement.sh -f -json 2>&1 | synapse/.ci/scripts/gotestfmt
 
 #  nuclear:
 #    name: "Overload GitHub"

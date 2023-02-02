@@ -32,6 +32,7 @@ def set_output(key: str, value: str):
 
 complement_single_worker_tests = [
     {
+        "test_name": "Singles",
         "worker_types": workers,
     }
     for workers in (
@@ -57,21 +58,31 @@ complement_single_worker_tests = [
 ]
 
 complement_federation_worker_tests = [
-    {"worker_types": "federation_inbound, federation_reader, federation_sender"}
+    {
+        "test_name": "Federation Workers",
+        "worker_types": "federation_inbound, federation_reader, federation_sender"
+    }
 ]
 
 complement_sharding_worker_tests = [
-    {"worker_types": "event_persister, event_persister"},
-    {"worker_types": "federation_sender, federation_sender"},
-    {"worker_types": "pusher, pusher"},
+    {
+        "test_name": "Sharding",
+        "worker_types": "federation_sender, federation_sender"
+    },
+    {
+        "test_name": "Sharding",
+        "worker_types": "pusher, pusher"
+    },
 ]
 
 complement_stream_writers_worker_tests = [
     {
+        "test_name": "Stream Writers",
         "worker_types": "account_data, event_persister, presence, receipts, "
         "to_device, typing"
     },
     {
+        "test_name": "Async Stream Writers",
         "worker_types": "stream_writers=account_data+presence+receipts+to_device"
         "+typing, event_persister:2",
         "reactor": "1"
