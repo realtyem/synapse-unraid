@@ -3,7 +3,7 @@ name: Complement Tests(Metrics:OFF)
 on:
   workflow_dispatch:
   push:
-    branches: ["exp/extended-complement", "dependabot/*"]
+    branches: ["unraid_develop"]
   schedule:
     - cron: 0 4 * * *
 concurrency:
@@ -30,7 +30,7 @@ jobs:
           tags: "realtyem/synapse:latest"
           outputs: type=docker,dest=/tmp/synapse-prewarm.tar
           cache-from: type=gha
-          #cache-to: type=gha,mode=max
+          cache-to: type=gha,mode=max
 
       - name: Upload artifact
         uses: actions/upload-artifact@v3
@@ -110,7 +110,8 @@ jobs:
         env:
           POSTGRES: "true"
           WORKERS: "true"
-          SYNAPSE_WORKER_TYPES: ${{ matrix.job.worker_types }}
+          WORKER_TYPES: ${{ matrix.job.worker_types }}
+          REACTOR: ${{ matrix.job.reactor }}
         run: |
           set -o pipefail
           COMPLEMENT_DIR=`pwd`/complement synapse/scripts-dev/complement-extended.sh -f -json 2>&1 | synapse/.ci/scripts/gotestfmt

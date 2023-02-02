@@ -73,7 +73,9 @@ complement_stream_writers_worker_tests = [
     },
     {
         "worker_types": "stream_writers=account_data+presence+receipts+to_device"
-                        "+typing, event_persister:2"
+                        "+typing, event_persister:2",
+        "reactor": "1"
+        # Using 1 as a parameter so it passes directly in
     }
 ]
 
