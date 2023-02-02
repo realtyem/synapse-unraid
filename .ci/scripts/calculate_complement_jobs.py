@@ -36,7 +36,7 @@ complement_single_worker_tests = [
     }
     for workers in (
         "account_data",
-        # "appservice",
+        "appservice",
         "background_worker",
         "client_reader",
         "event_creator",
@@ -64,12 +64,16 @@ complement_sharding_worker_tests = [
     {"worker_types": "event_persister, event_persister"},
     {"worker_types": "federation_sender, federation_sender"},
     {"worker_types": "pusher, pusher"},
-    {"worker_types": "federation_inbound, federation_inbound"},
 ]
 
 complement_stream_writers_worker_tests = [
     {
-        "worker_types": "account_data, event_persister, presence, receipts, to_device, typing"
+        "worker_types": "account_data, event_persister, presence, receipts, "
+                        "to_device, typing"
+    },
+    {
+        "worker_types": "stream_writers=account_data+presence+receipts+to_device"
+                        "+typing, event_persister:2"
     }
 ]
 
