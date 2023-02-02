@@ -563,6 +563,10 @@ jobs:
           - arrangement: workers
             database: Postgres
 
+          - arrangement: monolith
+            database: Postgres
+            reactor: asyncio
+
     steps:
       - name: Run actions/checkout@v3 for synapse
         uses: actions/checkout@v3
