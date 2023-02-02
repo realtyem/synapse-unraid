@@ -69,14 +69,14 @@ complement_sharding_worker_tests = [
 complement_stream_writers_worker_tests = [
     {
         "worker_types": "account_data, event_persister, presence, receipts, "
-                        "to_device, typing"
+        "to_device, typing"
     },
     {
         "worker_types": "stream_writers=account_data+presence+receipts+to_device"
-                        "+typing, event_persister:2",
+        "+typing, event_persister:2",
         "reactor": "1"
         # Using 1 as a parameter so it passes directly in
-    }
+    },
 ]
 
 complement_nuclear_worker_tests = [
