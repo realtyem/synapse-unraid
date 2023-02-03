@@ -44,7 +44,26 @@ if strtobool(os.environ.get("SYNAPSE_ASYNC_IO_REACTOR", "0")):
 
     from twisted.internet import asyncioreactor
 
-    asyncioreactor.install(asyncio.get_event_loop())
+    # allow for a singular variant to a "truthy" value to install an alternative to the
+    # normal python asyncio event loop. By passing it in this way, we avoid needing a
+    # new environmental variable. This is experimental.
+    if os.environ.get("SYNAPSE_COMPLEMENT_USE_ASYNCIO_REACTOR") == "uvloop":
+        # something uvloop something
+        import uvloop
+
+        # Install the loop globally
+        uvloop.install()
+        # Create the new loop
+        loop = asyncio.new_event_loop()
+        # Make sure it actually is a uvloop
+        assert isinstance(loop, uvloop.Loop)
+
+    else:
+        # Create the new loop
+        loop = asyncio.new_event_loop()
+
+    # Install the twisted reactor
+    asyncioreactor.install(loop)
 
 # Twisted and canonicaljson will fail to import when this file is executed to
 # get the __version__ during a fresh install. That's OK and subsequent calls to

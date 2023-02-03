@@ -241,6 +241,7 @@ Pympler = { version = "*", optional = true }
 parameterized = { version = ">=0.7.4", optional = true }
 idna = { version = ">=2.5", optional = true }
 pyicu = { version = ">=2.10.2", optional = true }
+uvloop = {version = "0.17.0", optional = true}
 
 [tool.poetry.extras]
 # NB: Packages that should be part of `pip install matrix-synapse[all]` need to be specified
@@ -267,6 +268,7 @@ test = ["parameterized", "idna"]
 # requires libicu's development headers installed on the system (e.g. libicu-dev on
 # Debian-based distributions).
 user-search = ["pyicu"]
+uvloop = ["uvloop"]
 
 # The duplication here is awful. I hate hate hate hate hate it. However, for now I want
 # to ensure you can still `pip install matrix-synapse[all]` like today. Two motivations:
@@ -300,6 +302,8 @@ all = [
     "pympler",
     # improved user search
     "pyicu",
+    # ultrafast asyncio event loop
+    "uvloop",
     # omitted:
     #   - test: it's useful to have this separate from dev deps in the olddeps job
     #   - systemd: this is a system-based requirement

@@ -229,8 +229,9 @@ else
 fi
 
 if [[ -n "$ASYNCIO_REACTOR" ]]; then
-  # Enable the Twisted asyncio reactor
-  export PASS_SYNAPSE_COMPLEMENT_USE_ASYNCIO_REACTOR=true
+  # Enable the Twisted asyncio reactor if the value is anything but null. Pass through the value to allow for custom
+  # reactor like uvloop(at the moment, the only other option).
+  export PASS_SYNAPSE_COMPLEMENT_USE_ASYNCIO_REACTOR=$ASYNCIO_REACTOR
 fi
 
 

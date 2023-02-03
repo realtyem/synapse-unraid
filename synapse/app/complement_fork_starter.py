@@ -87,7 +87,7 @@ class ProxiedReactor:
     def __init__(self) -> None:
         self.___reactor_target: Any = None
 
-    def _install_real_reactor(self, new_reactor: Any) -> None:
+    def install_real_reactor(self, new_reactor: Any) -> None:
         """
         Install a real reactor for this ProxiedReactor to forward lookups onto.
 
@@ -123,19 +123,54 @@ def _worker_entrypoint(
     # SYNAPSE_COMPLEMENT_FORKING_LAUNCHER_ASYNC_IO_REACTOR is set to 1. The
     # SYNAPSE_ASYNC_IO_REACTOR variable would be used, but then causes
     # synapse/__init__.py to also try to install an asyncio reactor.
+    from twisted.internet.posixbase import PosixReactorBase
+
+    reactor: PosixReactorBase
+
     if strtobool(
         os.environ.get("SYNAPSE_COMPLEMENT_FORKING_LAUNCHER_ASYNC_IO_REACTOR", "0")
     ):
+        from incremental import Version
+
+        import twisted
+
+        # We need a bugfix that is included in Twisted 21.2.0:
+        # https://twistedmatrix.com/trac/ticket/9787
+        if twisted.version < Version("Twisted", 21, 2, 0):
+            print("Using asyncio reactor requires Twisted>=21.2.0")
+            sys.exit(1)
+
         import asyncio
 
         from twisted.internet.asyncioreactor import AsyncioSelectorReactor
 
-        reactor = AsyncioSelectorReactor(asyncio.get_event_loop())
-        proxy_reactor._install_real_reactor(reactor)
+        loop: asyncio.AbstractEventLoop
+
+        # There is a special, allegedly ultra-fast event loop we can use with Twisted,
+        # it's called uvloop. It can be found at https://github.com/MagicStack/uvloop.
+        # Piggyback off of the value set in complement.sh by passing ASYNCIO_REACTOR in.
+        if os.environ.get("SYNAPSE_COMPLEMENT_USE_ASYNCIO_REACTOR") == "uvloop":
+            import uvloop
+
+            # Install uvloop event loop globally
+            uvloop.install()
+            # Create the new loop
+            loop = asyncio.new_event_loop()
+            # Verify this is actually a uvloop
+            assert isinstance(loop, uvloop.Loop)
+
+        else:
+            # Create the new loop
+            loop = asyncio.new_event_loop()
+
+        reactor = AsyncioSelectorReactor(loop)
+
     else:
         from twisted.internet.epollreactor import EPollReactor
 
-        proxy_reactor._install_real_reactor(EPollReactor())
+        reactor = EPollReactor()
+
+    proxy_reactor.install_real_reactor(reactor)
 
     func()
 
