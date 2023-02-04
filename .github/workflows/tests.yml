@@ -567,6 +567,18 @@ jobs:
             database: Postgres
             reactor: asyncio
 
+          - arrangement: monolith
+            database: Postgres
+            reactor: uvloop
+
+          - arrangement: workers
+            database: Postgres
+            reactor: asyncio
+
+          - arrangement: workers
+            database: Postgres
+            reactor: uvloop
+
     steps:
       - name: Run actions/checkout@v3 for synapse
         uses: actions/checkout@v3
@@ -628,7 +640,8 @@ jobs:
         env:
           POSTGRES: ${{ (matrix.database == 'Postgres') && 1 || '' }}
           WORKERS: ${{ (matrix.arrangement == 'workers') && 1 || '' }}
-          ASYNCIO_REACTOR: ${{ (matrix.reactor == 'asyncio') && 1 || '' }}
+          # Take advantage of the fact that the validation for truthy doesn't actually exist here.
+          ASYNCIO_REACTOR: ${{ matrix.reactor || '' }}
         name: Run Complement Tests
 
   cargo-test:
