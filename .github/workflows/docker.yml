@@ -44,12 +44,13 @@ jobs:
         id: set-tag
         uses: docker/metadata-action@master
         with:
-          images: ${{ secrets.DOCKERHUB_USERNAME }}/synapse
+          images: realtyem/synapse
           flavor: |
             latest=auto
           tags: |
             type=pep440,pattern={{raw}}
             type=raw,value=develop,enable=${{ github.ref == 'refs/heads/unraid_develop' }}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/unraid_develop' }}
             type=raw,value=${{ github.ref_name }},enable=${{ github.ref != 'refs/heads/unraid_develop' }}
 
       - name: Build and push to repo
