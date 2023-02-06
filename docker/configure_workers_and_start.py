@@ -716,6 +716,36 @@ def generate_worker_files(
     # ["worker_name": "worker_type(s)"]
     worker_name_type_list: Dict[str, str] = {}
 
+    # Special endpoint patterns which can share an upstream. For example, take the
+    # SYNAPSE_WORKER_TYPES declared as 'federation_inbound:2, federation_inbound +
+    # synchrotron'. In this case, there are actually 3 federation_inbound potential
+    # workers. Use this to merge these cases together into a special nginx proxy
+    # upstream for load-balancing. Going with the above example, this would look like:
+    #
+    # {
+    #   "^/_matrix/federation/(v1|v2)/send/":
+    #       [
+    #           "federation_inbound",
+    #           "federation_inbound+synchrotron"
+    #       ]
+    #  },
+    # {
+    #   "^/_matrix/client/(r0|v3|unstable)/sync$":
+    #       ["federation_inbound+synchrotron"]
+    # },
+    # {
+    #   "^/_matrix/client/(api/v1|r0|v3)/events$":
+    #       ["federation_inbound+synchrotron"]
+    # },
+    # {
+    #   "^/_matrix/client/(api/v1|r0|v3)/initialSync$":
+    #       ["federation_inbound+synchrotron"]
+    # }
+    #
+    # Thereby allowing a deeper merging of endpoints. I'm not going lie, this can get
+    # complicated really quick.
+    worker_endpoints_dict: Dict[str, list[str]] = {}
+
     # A list of internal endpoints to healthcheck, starting with the main process
     # which exists even if no workers do.
     healthcheck_urls = ["http://localhost:8080/health"]
@@ -768,6 +798,10 @@ def generate_worker_files(
             "shared_extra_conf": {},
             "worker_extra_conf": "",
         }
+
+        # Check if more than one instance of this worker type has been specified. Do
+        # this early, before the name has been stripped off so we get an accurate count.
+        worker_type_total_count = worker_types.count(worker_type)
 
         # Peel off any name designated before a '=' to use later.
         requested_worker_name = ""
@@ -912,9 +946,6 @@ def generate_worker_files(
 
         healthcheck_urls.append("http://localhost:%d/health" % (worker_port,))
 
-        # Check if more than one instance of this worker type has been specified
-        worker_type_total_count = worker_types.count(worker_type)
-
         # Update the shared config with sharding-related options if necessary
         add_worker_roles_to_shared_config(
             shared_config, workers_to_combo_list, worker_name, worker_port
@@ -925,12 +956,22 @@ def generate_worker_files(
 
         # Add nginx location blocks for this worker's endpoints (if any are defined)
         for pattern in worker_config["endpoint_patterns"]:
+            # Don't have enough data yet to see if this needs to be combined with
+            # another upstream. Save the data.
+            worker_endpoints_dict.setdefault(pattern, []).append(worker_base_name)
+
+            # Deduplicate upstream list on the spot, while here
+            worker_endpoints_dict[pattern] = list(
+                dict.fromkeys(worker_endpoints_dict[pattern])
+            )
+
+            # Create or add to a load-balanced upstream data for this worker
+            nginx_upstreams.setdefault(worker_base_name, set()).add(worker_port)
+
             # Determine whether we need to load-balance this worker
             if worker_type_total_count > 1:
-                # Create or add to a load-balanced upstream for this worker
-                nginx_upstreams.setdefault(worker_base_name, set()).add(worker_port)
-
-                # Upstreams are named after the worker_base_name
+                # Upstreams are named after the worker_base_name. This may be updated
+                # again below if multiple upstreams are being combined.
                 upstream = "http://" + worker_base_name
             else:
                 upstream = "http://localhost:%d" % (worker_port,)
@@ -953,7 +994,58 @@ def generate_worker_files(
         worker_metrics_port += 1
         worker_manhole_port += 1
 
+    # At this point, we have three nginx structures: nginx_locations, nginx_upstreams
+    # and worker_endpoints_dict.
+    # nginx_locations:
+    #   { "endpoint": "upstream_name" }
+    #
+    # upstreams:
+    #   { "upstream_name", ["port1", "port2"]}
+    #
+    # worker_endpoints_dict:
+    #   { "endpoint": ["upstream_name1", upstream_name2"])
+    # Need to combine multiple upstream_name's into one, then update upstreams and
+    # nginx_locations with new values. Join the new upstream names with a '-' to
+    # distinguish from combined worker_types. Note that this only happens if multiple
+    # upstreams exist for an endpoint, which is why we use the worker_endpoints_dict,
+    # and not the nginx_upstreams directly.
+    # log("- Checking worker_endpoints_dict: " + json.dumps(worker_endpoints_dict,
+    #                                                    indent=4))
+    # log("- Checking nginx_locations: " + json.dumps(nginx_locations, indent=4))
+    # log("- Checking nginx_upstreams: " + json.dumps(str(nginx_upstreams), indent=4))
+    for endpoint in worker_endpoints_dict:
+        # log("Found: " + str(worker_endpoints_dict[endpoint]) + " for: " + endpoint)
+        # If there is only one upstream for this endpoint, then it's already registered
+        # as a localhost:port combo, skip it.
+        if len(worker_endpoints_dict[endpoint]) < 2:
+            # log("  Endpoint: " + str(worker_endpoints_dict[endpoint]) + " has less than 2 entries")
+            continue
+        # Combine the names of the upstreams
+        new_nginx_upstream = "-".join(worker_endpoints_dict[endpoint])
+
+        # Check for existing, if so we don't have to do more here
+        if new_nginx_upstream not in nginx_upstreams:
+            log(new_nginx_upstream + " not found in nginx_upstreams")
+            new_nginx_upstream_port_list: Set[int] = set()
+
+            for worker_type in worker_endpoints_dict[endpoint]:
+                # If this is a combined upstream, there may not be port data for it in
+                # the nginx_upstream dict. Check and update if missing.
+                new_nginx_upstream_port_list.update(nginx_upstreams[worker_type])
+
+            # The combined name wasn't found in nginx_upstreams, so add it now that the
+            # ports are compiled.
+            nginx_upstreams[new_nginx_upstream] = new_nginx_upstream_port_list
+            log("Adding to nginx_upstreams: " + new_nginx_upstream)
+            log("With new ports list: " + str(new_nginx_upstream_port_list))
+
+        # Update nginx_location with new upstream
+        nginx_locations[endpoint] = "http://" + new_nginx_upstream
+
     # Build the nginx location config blocks
+    # log("nginx_upstreams: " + str(nginx_upstreams))
+    # log("nginx_locations: " + json.dumps(nginx_locations, indent=4))
+    # log("worker_endpoints_dict: " + json.dumps(worker_endpoints_dict, indent=4))
     nginx_location_config = ""
     for endpoint, upstream in nginx_locations.items():
         nginx_location_config += NGINX_LOCATION_CONFIG_BLOCK.format(
@@ -967,68 +1059,98 @@ def generate_worker_files(
     worker_type_load_balance_header_list = ["synchrotron"]
     worker_type_load_balance_ip_list = ["federation_inbound"]
 
+    # log("Nginx_location_config: " + str(nginx_location_config))
     for upstream_worker_base_name, upstream_worker_ports in nginx_upstreams.items():
-        body = ""
-        for port in upstream_worker_ports:
-            body += "    server localhost:%d;\n" % (port,)
-        log("upstream_worker_base_name: " + upstream_worker_base_name)
-
-        # This presents a dilemma. Some endpoints are better load-balanced by
-        # Authorization header, and some by remote IP. What do you do if a combo
-        # worker was requested that has endpoints for both? As it is likely but not
-        # impossible that a user will be on the same IP if they have multiple
-        # devices(like at home on Wi-Fi), I believe that balancing by IP would be the
-        # broader reaching choice. This is probably only slightly better than
-        # round-robin. As such, leave balancing by remote IP as the first of the
-        # conditionals below, so if both would apply the first is used.
-
-        # Three additional notes:
-        #   1. Federation endpoints shouldn't (necessarily) have Authorization headers,
-        #       so using them on these endpoints would be a moot point.
-        #   2. For Complement, this situation is reversed as there is only ever a single
-        #       IP used during tests, 127.0.0.1.
-        #   3. IIRC, it may be possible to hash by both at once, or at least have both
-        #       hashes on the same line. If I understand that correctly, the one that
-        #       doesn't exist is effectively ignored. However, that requires increasing
-        #       the hashmap size in the nginx master config file, which would take more
-        #       jinja templating(or at least a 'sed'), and may not be accepted upstream.
-        #       Based on previous experiments, increasing this value was required for
-        #       hashing by room id, so may end up being a path forward anyway.
-
-        # Some endpoints should be load-balanced by client IP. This way, if it comes
-        # from the same IP, it goes to the same worker and should be a smarter way to
-        # cache data. This works well for federation.
-        if any(
-            x in worker_type_load_balance_ip_list
-            for x in str(worker_name_type_list.get(upstream_worker_base_name)).split(
-                "+"
+        if len(upstream_worker_ports) > 1:
+            log(
+                "Found multiple ports: "
+                + str(len(upstream_worker_ports))
+                + ". Creating new upstream block."
             )
-        ):
-            nginx_upstream_config += (
-                NGINX_UPSTREAM_HASH_BY_CLIENT_IP_CONFIG_BLOCK.format(
+            body = ""
+            # Go ahead and pre-split the worker_type string(again) to avoid doing it
+            # twice.
+            worker_type_split_string = []
+            base_name_split = split_and_strip_string(upstream_worker_base_name, "-")
+            for x in base_name_split:
+                # Check and see if it's a name or a worker_type.
+                retrieved_worker_type = worker_name_type_list.get(x)
+                if retrieved_worker_type is not None:
+                    # it's a worker name, not a type, split the retrieved type
+                    worker_type_split_string.extend(
+                        split_and_strip_string(retrieved_worker_type, "+")
+                    )
+                else:
+                    # It's directly the worker_type(s), and can be split on the +
+                    base_name_split2 = split_and_strip_string(x, "+")
+                    worker_type_split_string.extend(base_name_split2)
+            log(
+                "temp_base_name: "
+                + str(worker_name_type_list.get(upstream_worker_base_name))
+            )
+            log("worker_type_split_string: " + str(worker_type_split_string))
+
+            # Add specific "hosts" by port number to the upstream block.
+            for port in upstream_worker_ports:
+                body += "    server localhost:%d;\n" % (port,)
+            log("upstream_worker_base_name: " + upstream_worker_base_name)
+
+            # This presents a dilemma. Some endpoints are better load-balanced by
+            # Authorization header, and some by remote IP. What do you do if a combo
+            # worker was requested that has endpoints for both? As it is likely but
+            # not impossible that a user will be on the same IP if they have multiple
+            # devices(like at home on Wi-Fi), I believe that balancing by IP would be
+            # the broader reaching choice. This is probably only slightly better than
+            # round-robin. As such, leave balancing by remote IP as the first of the
+            # conditionals below, so if both would apply the first is used.
+
+            # Three additional notes:
+            #   1. Federation endpoints shouldn't (necessarily) have Authorization
+            #       headers, so using them on these endpoints would be a moot point.
+            #   2. For Complement, this situation is reversed as there is only ever a
+            #       single IP used during tests, 127.0.0.1.
+            #   3. IIRC, it may be possible to hash by both at once, or at least have
+            #       both hashes on the same line. If I understand that correctly, the
+            #       one that doesn't exist is effectively ignored. However, that
+            #       requires increasing the hashmap size in the nginx master config
+            #       file, which would take more jinja templating(or at least a 'sed'),
+            #       and may not be accepted upstream. Based on previous experiments,
+            #       increasing this value was required for hashing by room id, so may
+            #       end up being a path forward anyway.
+
+            # Some endpoints should be load-balanced by client IP. This way,
+            # if it comes from the same IP, it goes to the same worker and should be
+            # a smarter way to cache data. This works well for federation.
+
+            if any(
+                x in worker_type_load_balance_ip_list for x in worker_type_split_string
+            ):
+                nginx_upstream_config += (
+                    NGINX_UPSTREAM_HASH_BY_CLIENT_IP_CONFIG_BLOCK.format(
+                        upstream_worker_base_name=upstream_worker_base_name,
+                        body=body,
+                    )
+                )
+            # Some endpoints should be load-balanced by Authorization header. This
+            # means that even with a different IP, a user should get the same data
+            # from the same upstream source, like a synchrotron worker, with smarter
+            # caching of data.
+            elif any(
+                x in worker_type_load_balance_header_list
+                for x in worker_type_split_string
+            ):
+                nginx_upstream_config += (
+                    NGINX_UPSTREAM_HASH_BY_AUTH_HEADER_BLOCK.format(
+                        upstream_worker_base_name=upstream_worker_base_name,
+                        body=body,
+                    )
+                )
+            # Everything else, just use the default basic round-robin scheme.
+            else:
+                nginx_upstream_config += NGINX_UPSTREAM_CONFIG_BLOCK.format(
                     upstream_worker_base_name=upstream_worker_base_name,
                     body=body,
                 )
-            )
-        # Some endpoints should be load-balanced by Authorization header. This means
-        # that even with a different IP, a user should get the same data from the same
-        # upstream source, like a synchrotron worker, with smarter caching of data.
-        elif any(
-            x in worker_type_load_balance_header_list
-            for x in str(worker_name_type_list.get(upstream_worker_base_name)).split(
-                "+"
-            )
-        ):
-            nginx_upstream_config += NGINX_UPSTREAM_HASH_BY_AUTH_HEADER_BLOCK.format(
-                upstream_worker_base_name=upstream_worker_base_name,
-                body=body,
-            )
-        # Everything else, just use the default basic round-robin scheme.
-        else:
-            nginx_upstream_config += NGINX_UPSTREAM_CONFIG_BLOCK.format(
-                upstream_worker_base_name=upstream_worker_base_name,
-                body=body,
-            )
 
     log("nginx_upstream_config block: " + nginx_upstream_config)
     # Setup the metric end point locations, names and indexes
