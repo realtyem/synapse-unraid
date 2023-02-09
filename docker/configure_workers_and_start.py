@@ -298,20 +298,6 @@ upstream {upstream_worker_base_name} {{
 }}
 """
 
-NGINX_UPSTREAM_HASH_BY_CLIENT_IP_CONFIG_BLOCK = """
-upstream {upstream_worker_base_name} {{
-    hash $proxy_add_x_forwarded_for;
-{body}
-}}
-"""
-
-NGINX_UPSTREAM_HASH_BY_AUTH_HEADER_BLOCK = """
-upstream {upstream_worker_base_name} {{
-    hash $http_authorization consistent;
-{body}
-}}
-"""
-
 PROMETHEUS_SCRAPE_CONFIG_BLOCK = """
     - targets: ["127.0.0.1:{metrics_port}"]
       labels:
@@ -1069,8 +1055,9 @@ def generate_worker_files(
             )
             body = ""
             # Go ahead and pre-split the worker_type string(again) to avoid doing it
-            # twice.
+            # more.
             worker_type_split_string = []
+            # Separate the combined nginx upstream name on the '-'.
             base_name_split = split_and_strip_string(upstream_worker_base_name, "-")
             for x in base_name_split:
                 # Check and see if it's a name or a worker_type.
@@ -1089,11 +1076,6 @@ def generate_worker_files(
                 + str(worker_name_type_list.get(upstream_worker_base_name))
             )
             log("worker_type_split_string: " + str(worker_type_split_string))
-
-            # Add specific "hosts" by port number to the upstream block.
-            for port in upstream_worker_ports:
-                body += "    server localhost:%d;\n" % (port,)
-            log("upstream_worker_base_name: " + upstream_worker_base_name)
 
             # This presents a dilemma. Some endpoints are better load-balanced by
             # Authorization header, and some by remote IP. What do you do if a combo
@@ -1125,12 +1107,7 @@ def generate_worker_files(
             if any(
                 x in worker_type_load_balance_ip_list for x in worker_type_split_string
             ):
-                nginx_upstream_config += (
-                    NGINX_UPSTREAM_HASH_BY_CLIENT_IP_CONFIG_BLOCK.format(
-                        upstream_worker_base_name=upstream_worker_base_name,
-                        body=body,
-                    )
-                )
+                body += "    hash $proxy_add_x_forwarded_for;"
             # Some endpoints should be load-balanced by Authorization header. This
             # means that even with a different IP, a user should get the same data
             # from the same upstream source, like a synchrotron worker, with smarter
@@ -1139,18 +1116,18 @@ def generate_worker_files(
                 x in worker_type_load_balance_header_list
                 for x in worker_type_split_string
             ):
-                nginx_upstream_config += (
-                    NGINX_UPSTREAM_HASH_BY_AUTH_HEADER_BLOCK.format(
-                        upstream_worker_base_name=upstream_worker_base_name,
-                        body=body,
-                    )
-                )
+                body += "    hash $http_authorization consistent;"
+
+            # Add specific "hosts" by port number to the upstream block.
+            for port in upstream_worker_ports:
+                body += "    server localhost:%d;\n" % (port,)
+            log("upstream_worker_base_name: " + upstream_worker_base_name)
+
             # Everything else, just use the default basic round-robin scheme.
-            else:
-                nginx_upstream_config += NGINX_UPSTREAM_CONFIG_BLOCK.format(
-                    upstream_worker_base_name=upstream_worker_base_name,
-                    body=body,
-                )
+            nginx_upstream_config += NGINX_UPSTREAM_CONFIG_BLOCK.format(
+                upstream_worker_base_name=upstream_worker_base_name,
+                body=body,
+            )
 
     log("nginx_upstream_config block: " + nginx_upstream_config)
     # Setup the metric end point locations, names and indexes
