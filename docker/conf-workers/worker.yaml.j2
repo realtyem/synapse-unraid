@@ -10,24 +10,7 @@ worker_name: "{{ name }}"
 worker_replication_host: 127.0.0.1
 worker_replication_http_port: 9093
 
-worker_listeners:
-  - type: http
-    port: {{ port }}
-{% if listener_resources %}
-    resources:
-      - names:
-{%- for resource in listener_resources %}
-        - {{ resource }}
-{%- endfor %}
-{% endif %}
-{% if metrics_port %}
-  - type: metrics
-    port: {{ metrics_port }}
-{% endif %}
-{% if enable_manhole_workers == "True" %}
-  - type: manhole
-    port: {{ manhole_port }}
-{% endif %}
+{{ worker_listeners }}
 
 worker_log_config: {{ worker_log_config_filepath }}
 
