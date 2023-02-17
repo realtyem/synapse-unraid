@@ -287,7 +287,7 @@ HTTP_BASED_LISTENER_RESOURCES = [
     "client",
     "federation",
     "media",
-    "replication"
+    "replication",
 ]
 
 # Templates for sections that may be inserted multiple times in config files
