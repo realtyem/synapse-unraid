@@ -282,6 +282,14 @@ WORKERS_CONFIG: Dict[str, Dict[str, Any]] = {
     },
 }
 
+HTTP_BASED_LISTENER_RESOURCES = [
+    "health",
+    "client",
+    "federation",
+    "media",
+    "replication"
+]
+
 # Templates for sections that may be inserted multiple times in config files
 NGINX_LOCATION_CONFIG_BLOCK = """
     location ~* {endpoint} {{
@@ -891,83 +899,6 @@ def combine_shared_config_fragments(
     return new_shared_config
 
 
-def merge_worker_template_configs(
-    existing_dict: Dict[str, Any],
-    to_be_merged_dict: Dict[str, Any],
-) -> Dict[str, Any]:
-    """When given an existing dict of worker template configuration, merge new template
-        data from WORKERS_CONFIG and return new dict.
-
-    Args:
-        existing_dict: Either an existing worker template or a fresh blank one.
-        to_be_merged_dict: The template from WORKERS_CONFIGS to be merged into
-            existing_dict.
-    Returns: The newly merged together dict values.
-    """
-    new_dict: Dict[str, Any] = {}
-    for i in to_be_merged_dict.keys():
-        if (i == "endpoint_patterns") or (i == "listener_resources"):
-            # merge the two lists, remove duplicates
-            new_dict[i] = list(set(existing_dict[i] + to_be_merged_dict[i]))
-        elif i == "shared_extra_conf":
-            # merge dictionary's, the worker name will be replaced below after counting
-            new_dict[i] = {**existing_dict[i], **to_be_merged_dict[i]}
-        elif i == "worker_extra_conf":
-            # There is only one worker type that has a 'worker_extra_conf' and it is
-            # the media_repo. Since duplicate worker types on the same worker don't
-            # work, this is fine.
-            new_dict[i] = existing_dict[i] + to_be_merged_dict[i]
-        else:
-            # Everything else should be identical, like "app", which only works because
-            # all apps are now generic_workers.
-            new_dict[i] = to_be_merged_dict[i]
-    return new_dict
-
-
-def is_sharding_allowed_for_worker_type(worker_type: str) -> bool:
-    """Helper to check to make sure worker types that cannot have multiples do not.
-
-    Args:
-        worker_type: The type of worker to check against.
-    Returns: True if allowed, False if not
-    """
-    if worker_type in [
-        "background_worker",
-        "account_data",
-        "presence",
-        "receipts",
-        "typing",
-        "to_device",
-    ]:
-        return False
-    else:
-        return True
-
-
-def is_name_allowed_for_worker(
-    worker_type_counter: Dict[str, str], worker_base_name: str, worker_type: str
-) -> bool:
-    """Given a dict of worker_base_name:worker_type, check if this worker_base_name has
-        been seen before.
-
-    Args:
-        worker_type_counter: dict of worker_base_name:worker_type.
-        worker_base_name: str of the base worker name, no appended number.
-        worker_type: str of the worker_type, including combo workers.
-    Returns: True if allowed, False if not
-    """
-    counter_to_check = worker_type_counter.get(worker_base_name)
-    if counter_to_check is not None:
-        if counter_to_check == worker_type:
-            # Key exists, and they match so it should be ok.
-            return True
-        else:
-            return False
-    else:
-        # Key doesn't exist, it's ok to use.
-        return True
-
-
 def split_and_strip_string(given_string: str, split_char: str) -> List:
     # Removes whitespace from ends of result strings before adding to list.
     return [x.strip() for x in given_string.split(split_char)]
@@ -1067,6 +998,7 @@ def generate_worker_files(
     # program blocks.
     worker_descriptors: List[Dict[str, Any]] = []
 
+    # TODO: Move this data to appropriate place
     # Upstreams for load-balancing purposes. This dict takes the form of a worker type
     # to the ports of each worker. For example:
     # {
@@ -1113,30 +1045,12 @@ def generate_worker_files(
         worker_types = []
     else:
         # Split type names by comma, ignoring whitespace.
-        worker_types = [x.strip() for x in worker_types_env.split(",")]
+        worker_types = split_and_strip_string(worker_types_env, ",")
 
     # Create the worker configuration directory if it doesn't already exist
     os.makedirs("/conf/workers", exist_ok=True)
 
-    # A counter of worker_type -> int. Used for determining the name for a given
-    # worker type when generating its config file, as each worker's name is just
-    # worker_type(s) + instance #
-    # worker_type_counter: Dict[str, int] = {}
-
-    # Similar to above, but more finely grained. This is used to determine we don't have
-    # more than a single worker for cases where multiples would be bad(e.g. presence).
-    # worker_type_shard_counter: Dict[str, int] = {}
-
-    # Similar to above, but for worker name's. This has two uses:
-    # 1. Can be used to check that worker names for different worker types or
-    #       combinations of types is not used, as it will error with 'Address in
-    #       use'(e.g. "to_device, to_device=typing" would not work).
-    # 2. Convenient way to get the combination of worker types from worker_name after
-    #       processing and merging.
-    # Follows the pattern:
-    # ["worker_name": "worker_type(s)"]
-    # worker_name_type_list: Dict[str, str] = {}
-
+    # TODO: move this data to an appropriate place
     # Special endpoint patterns which can share an upstream. For example, take the
     # SYNAPSE_WORKER_TYPES declared as 'federation_inbound:2, federation_inbound +
     # synchrotron'. In this case, there are actually 3 federation_inbound potential
@@ -1250,8 +1164,7 @@ def generate_worker_files(
             # The worker name will be the worker_type, however if spaces exist
             # between concatenated worker_types and the "+" because of readability,
             # it will error on startup. Recombine worker_types without spaces and log.
-            # TODO: switch this to "in"
-            if worker_type.__contains__(" "):
+            if " " in worker_type:
                 # Found a space in the worker_type string. Split it, strip it, and
                 # rejoin it. Then test.
                 worker_base_name = "+".join(split_and_strip_string(worker_type, " "))
@@ -1268,11 +1181,7 @@ def generate_worker_files(
         # The name is parsed out, make the worker.
         new_worker_name = workers.add_worker(worker_base_name, worker_type)
 
-        # Add to the counter for checking 'worker_name':'worker_type'
-        # worker_name_type_list.setdefault(worker.base_name, worker_type)
-
-        # Cute shortcut to update things without a ridiculous amount of extra
-        # hard-2-read crap.
+        # Take a reference to update things without a ridiculous amount of extra lines.
         worker = workers.worker[new_worker_name]
 
         # Replace placeholder names in the config template with the actual worker name.
@@ -1289,18 +1198,10 @@ def generate_worker_files(
         # All workers get a health listener
         worker.listener_resources.append("health")
 
-        # Add in ports for each listener_entry(e.g. 'client', 'federation', 'media',
+        # Add in ports for each listener entry(e.g. 'client', 'federation', 'media',
         # 'replication')
         for listener_entry in worker.listener_resources:
             workers.set_listener_port_by_resource(new_worker_name, listener_entry)
-
-        # Check that worked as expected
-        log(
-            "Worker port check: "
-            + new_worker_name
-            + " "
-            + str(worker.listener_port_map)
-        )
 
         # Every worker gets a separate port to handle it's 'health' resource. Append it
         # to the list so docker can check it.
@@ -1311,10 +1212,9 @@ def generate_worker_files(
         # Prepare the bits that will be used in the worker.yaml file
         worker_config = worker.extract_jinja_worker_template()
 
-        # Update the global shared config with any worker-type specific options.
+        # Append the global shared config with any worker-type specific options.
         # Specifically, this keeps existing worker options in the shared.yaml without
-        # overwriting them as would normally happen with a update().
-        log("worker.shared_extra_config: " + str(worker.shared_extra_config))
+        # overwriting them as would normally happen with an update().
         shared_config = combine_shared_config_fragments(
             shared_config, worker.shared_extra_config
         )
@@ -1332,9 +1232,6 @@ def generate_worker_files(
         # appended to it.
         worker_descriptors.append(worker_config)
 
-        # TODO: Remove after testing
-        # log("nginx.upstreams: " + str(nginx.upstreams_to_ports))
-        # log("nginx.locations: " + str(nginx.locations))
         # Write out the worker's logging config file
         log_config_filepath = generate_worker_log_config(environ, worker.name, data_dir)
 
@@ -1342,7 +1239,7 @@ def generate_worker_files(
         worker_listeners: Dict[str, Any] = {}
         for listener in worker.listener_resources:
             this_listener: Dict[str, Any] = {}
-            if listener in ["health", "client", "federation", "media", "replication"]:
+            if listener in HTTP_BASED_LISTENER_RESOURCES:
                 this_listener = {
                     "type": "http",
                     "port": worker.listener_port_map[listener],
@@ -1355,7 +1252,6 @@ def generate_worker_files(
                     "port": worker.listener_port_map[listener],
                 }
             worker_listeners.setdefault("worker_listeners", []).append(this_listener)
-        # log("worker_listeners: " + str(worker_listeners))
 
         # That's everything needed to construct the worker config file.
         convert(
@@ -1388,7 +1284,6 @@ def generate_worker_files(
                     not in nginx.upstreams_to_ports[upstream_name]
                 ):
                     # it doesn't exist, add it
-                    log("upstream_name or ports not found in upstreams_to_ports")
                     nginx.add_or_replace_upstreams(
                         upstream_name,
                         worker.types_list,
@@ -1417,61 +1312,40 @@ def generate_worker_files(
     # If there is only one upstream for this endpoint, then it's unnecessary for it
     # to be an upstream. Mutate it into a direct 'localhost:port'. 'http://' will be
     # added before writing.
-    import json
 
-    # log("- Checking nginx.locations: " + json.dumps(nginx.locations, indent=4))
-    log(
-        "- Checking nginx.upstreams: "
-        + json.dumps(str(nginx.upstreams_to_ports), indent=4)
-    )
     for endpoint in nginx.locations:
-        log("Found: " + str(nginx.locations[endpoint]) + " for: " + endpoint)
         new_nginx_upstream: str = ""
         # Deal with a single port/upstream
         if (
             len(nginx.locations[endpoint]) < 2
             and len(nginx.upstreams_to_ports[nginx.locations[endpoint][0]]) < 2
         ):
-            log(
-                "  Endpoint: "
-                + str(nginx.locations[endpoint])
-                + " has less than 2 entries"
-            )
             for upstream in nginx.locations[endpoint]:
-                log("processing: " + upstream)
-                log("upstream_to_port: " + str(nginx.upstreams_to_ports[upstream]))
                 # This is called 'tuple unpacking' and it's dumb that python doesn't
                 # have a proper iter for a set. Alternatively, 'next(iter(of_set))'
                 # would do, but according to the forums, it's 3 times as slow when only
                 # using it on a single item set, with multiple items it's faster.
                 (upstream_to_string,) = nginx.upstreams_to_ports[upstream]
                 new_nginx_upstream += "localhost:%s" % upstream_to_string
-            log("Mutate upstream into: " + new_nginx_upstream)
-
         else:
-            # Combine the names of the upstreams, if there is more than one. If there is
-            # only one, this will do nothing and the following conditional will not
-            # fire, then the loop will continue.
+            # Combine the names of the upstreams, if there is more than one.
             name_pieces: list[str] = []
             resource = ""
             for name in nginx.locations[endpoint]:
-                # log("name before split: " + name)
                 name_split = name.split(".")
-                # log("name after split: " + str(name_split))
                 name_pieces.append(name_split[0])
                 resource = name_split[1]
+            # Sort the names, it's prettier.
             new_nginx_upstream = "-".join(sorted(name_pieces))
             # Re-append the resource name
             new_nginx_upstream += "." + resource
-            # log("new_nginx_upstream finished: " + new_nginx_upstream)
-            # new_nginx_upstream = "-".join(nginx.locations[endpoint])
 
             # Check for existing, if so we don't have to do more here
             if new_nginx_upstream not in nginx.upstreams_to_ports:
-                # log(new_nginx_upstream + " not found in nginx.upstreams_to_ports")
                 new_nginx_upstream_port_list: list[int] = []
                 new_nginx_upstream_role_list: list[str] = []
 
+                # Compile the newly merged upstream data
                 for this_worker in nginx.locations[endpoint]:
                     # If this is a combined upstream, there may not be port data for
                     # it in the nginx.upstream dict. Check and update if missing.
@@ -1497,30 +1371,23 @@ def generate_worker_files(
                     new_nginx_upstream_role_list,
                     new_nginx_upstream_port_list,
                 )
-                log("Adding to nginx.upstreams_to_port: " + new_nginx_upstream)
-                log("With new ports list: " + str(new_nginx_upstream_port_list))
-                log("With new roles list: " + str(new_nginx_upstream_role_list))
 
         # Update nginx.locations with new upstream
         nginx.add_or_replace_location(endpoint, new_nginx_upstream, replace=True)
-        # log("  Endpoint updated: " + str(nginx.locations[endpoint]))
 
     # Remove extra upstreams that are no longer needed.
     nginx.remove_unused_upstreams()
 
-    # Build the nginx location config blocks now that the upstreams are settled.
-    import json
-
-    log("nginx.upstreams_to_ports: " + str(nginx.upstreams_to_ports))
-    log("nginx.upstreams_roles: " + str(nginx.upstreams_roles))
-    log("nginx.locations: " + json.dumps(nginx.locations, indent=4))
+    # Build the nginx location config blocks now that the upstreams are settled. Now is
+    # when we pre-pend the 'http://'
     nginx_location_config = ""
     for endpoint in nginx.locations:
+        # At this point, nginx.locations[endpoint] is a single item in a list, grab the
+        # only element there, 0
         nginx_location_config += NGINX_LOCATION_CONFIG_BLOCK.format(
             endpoint=endpoint,
             upstream="http://" + nginx.locations[endpoint][0],
         )
-    log("nginx_location_config: " + str(nginx_location_config))
 
     # Determine the load-balancing upstreams to configure
     nginx_upstream_config = ""
@@ -1563,11 +1430,11 @@ def generate_worker_files(
             # Some endpoints should be load-balanced by client IP. This way,
             # if it comes from the same IP, it goes to the same worker and should be
             # a smarter way to cache data. This works well for federation.
-
             if any(
                 x in worker_type_load_balance_ip_list for x in worker_type_split_string
             ):
                 body += "    hash $proxy_add_x_forwarded_for;\n"
+
             # Some endpoints should be load-balanced by Authorization header. This
             # means that even with a different IP, a user should get the same data
             # from the same upstream source, like a synchrotron worker, with smarter
@@ -1581,7 +1448,6 @@ def generate_worker_files(
             # Add specific "hosts" by port number to the upstream block.
             for port in upstream_worker_ports:
                 body += "    server localhost:%d;\n" % (port,)
-            # log("upstream_worker_base_name: " + upstream_worker_base_name)
 
             # Everything else, just use the default basic round-robin scheme.
             nginx_upstream_config += NGINX_UPSTREAM_CONFIG_BLOCK.format(
@@ -1589,7 +1455,6 @@ def generate_worker_files(
                 body=body,
             )
 
-    log("nginx_upstream_config block: " + nginx_upstream_config)
     # Finally, we'll write out the config files.
 
     # log config for the master process
@@ -1609,7 +1474,6 @@ def generate_worker_files(
 
     workers_in_use = len(worker_types) > 0
 
-    log("Writing out shared.yaml: " + yaml.dump(shared_config))
     # Shared homeserver config
     convert(
         "/conf/shared.yaml.j2",
