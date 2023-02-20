@@ -19,17 +19,17 @@
 # The environment variables it reads are:
 #   * SYNAPSE_SERVER_NAME: The desired server_name of the homeserver.
 #   * SYNAPSE_REPORT_STATS: Whether to report stats.
-#   * SYNAPSE_WORKER_TYPES: A comma separated list of worker names as specified in WORKERS_CONFIG
-#         below. Leave empty for no workers. Add a ':' and a number at the end to
-#         multiply that worker. Append multiple worker types with '+' to merge the
-#         worker types into a single worker. Add a name and a '=' to the front of a
-#         worker type to give this instance a name in logs and nginx.
+#   * SYNAPSE_WORKER_TYPES: A comma separated list of worker names as specified in
+#         WORKERS_CONFIG below. Leave empty for no workers. Add a ':' and a number at
+#         the end to multiply that worker. Append multiple worker types with '+' to
+#         merge the worker types into a single worker. Add a name and a '=' to the
+#         front of a worker type to give this instance a name in logs and nginx.
 #         Examples:
 #         SYNAPSE_WORKER_TYPES='event_persister, federation_sender, client_reader'
 #         SYNAPSE_WORKER_TYPES='event_persister:2, federation_sender:2, client_reader'
 #         SYNAPSE_WORKER_TYPES='stream_writers=account_data+presence+typing'
-#   * SYNAPSE_AS_REGISTRATION_DIR: If specified, a directory in which .yaml and .yml files
-#         will be treated as Application Service registration files.
+#   * SYNAPSE_AS_REGISTRATION_DIR: If specified, a directory in which .yaml and .yml
+#         files will be treated as Application Service registration files.
 #   * SYNAPSE_TLS_CERT: Path to a TLS certificate in PEM format.
 #   * SYNAPSE_TLS_KEY: Path to a TLS key. If this and SYNAPSE_TLS_CERT are specified,
 #         Nginx will be configured to serve TLS on port 8448.
@@ -53,12 +53,14 @@ import socket
 import subprocess
 import sys
 import urllib.request
+from collections import defaultdict
 from pathlib import Path
 from typing import Any, Dict, List, Mapping, MutableMapping, NoReturn, Optional, Set
 
 import yaml
 from jinja2 import Environment, FileSystemLoader
 
+DEBUG = True
 MAIN_PROCESS_HTTP_LISTENER_PORT = 8080
 MAIN_PROCESS_HTTP_METRICS_LISTENER_PORT = 8060
 enable_compressor = False
@@ -66,7 +68,6 @@ enable_coturn = False
 enable_prometheus = False
 enable_redis_exporter = False
 enable_postgres_exporter = False
-
 
 # Workers with exposed endpoints needs either "client", "federation", or "media"
 #   listener_resources
@@ -222,7 +223,8 @@ WORKERS_CONFIG: Dict[str, Dict[str, Any]] = {
         "endpoint_patterns": [
             "^/_matrix/client/(api/v1|r0|v3|unstable)/rooms/.*/redact",
             "^/_matrix/client/(api/v1|r0|v3|unstable)/rooms/.*/send",
-            "^/_matrix/client/(api/v1|r0|v3|unstable)/rooms/.*/(join|invite|leave|ban|unban|kick)$",
+            "^/_matrix/client/(api/v1|r0|v3|unstable)/rooms/.*/"
+            "(join|invite|leave|ban|unban|kick)$",
             "^/_matrix/client/(api/v1|r0|v3|unstable)/join/",
             "^/_matrix/client/(api/v1|r0|v3|unstable)/profile/",
             "^/_matrix/client/(v1|unstable/org.matrix.msc2716)/rooms/.*/batch_send",
@@ -302,7 +304,7 @@ NGINX_LOCATION_CONFIG_BLOCK = """
 """
 
 NGINX_UPSTREAM_CONFIG_BLOCK = """
-upstream {upstream_worker_base_name} {{
+upstream {upstream_name} {{
 {body}
 }}
 """
@@ -324,24 +326,28 @@ class Worker:
         base_name: The basic name serves as a group identifier
         name: The given name the worker should use. base_name + incrementing number
         index: The number this worker was given on the end of base_name to make the name
-        app: 'synapse.app.generic_worker'
-        listener_resources: list of types of listeners needed. 'client, federation,
-            replication, media'
-        listener_port_map: dict of 'listener':port_number so 'client':18900
-        endpoint_patterns: list of url endpoints this worker accepts connections on.
-        shared_extra_config: dict of one-offs that enable special roles for specific
-            workers.
-        worker_extra_conf: only used by media_repository to enable that functionality
-        types_list: the list of roles this worker fulfills.
+        app: 'synapse.app.generic_worker' for all now
+        listener_resources: Set of types of listeners needed. 'client, federation,
+            replication, media' etc.
+        listener_port_map: Dict of 'listener':port_number so 'client':18900
+        endpoint_patterns: Dict of listener resource containing url endpoints this
+            worker accepts connections on. Because a worker can merge multiple roles
+            with potentially different listeners, this is important. e.g.
+            {'client':{'/url1','/url2'}}
+        shared_extra_config: Dict of one-offs that enable special roles for specific
+            workers. Ends up in shared.yaml
+        worker_extra_conf: Only used by media_repository to enable that functionality.
+            Ends up in worker.yaml
+        types_list: the List of roles this worker fulfills.
     """
 
     base_name: str
     name: str
     index: int
     app: str
-    listener_resources: List[str]
+    listener_resources: Set[str]
     listener_port_map: Dict[str, int]
-    endpoint_patterns: Dict[str, List[str]]
+    endpoint_patterns: Dict[str, Set[str]]
     shared_extra_config: Dict[str, Any]
     worker_extra_conf: str
     types_list: List[str]
@@ -366,144 +372,77 @@ class Worker:
             worker_type_str: The string representing what roles this worker will
                     fulfill.
         """
-        self.listener_resources = []
-        self.endpoint_patterns = {}
+        self.listener_resources = set()
+        self.endpoint_patterns = defaultdict(set[str])
         self.shared_extra_config = {}
-        self.listener_port_map = {}
+        self.listener_port_map = defaultdict(int)
         self.types_list = []
         self.worker_extra_conf = ""
         self.base_name = ""
         self.name = ""
         self.index = 0
         self.app = ""
-        # The process here is simple enough.
-        #   1. Assign the given name
-        #   2. split worker_type_str into a list of worker_types
-        #   3. grab app from WORKER_CONFIG for each worker_types(probably can skip this,
-        #       they are all the same now)
-        #   4. grab listener_resources from WORKER_CONFIG for each worker_type
-        #   5. grab endpoint_patterns from WORKER_CONFIG for each worker_type
-        #   6. grab shared_extra_conf from WORKER_CONFIG for each worker_type
-        #   7. grab worker_extra_conf from WORKER_CONFIG for each worker_type
-        #   8. merge and deduplicate 4 - 7
-        #   9. validate name isn't illegal
-        #   10. check counter(s) for inappropriate duplicates like background_worker
-        #   11. update name with incremental count
 
-        # 1. Assign the name provided
-        self.name = name
+        # Assign the name provided
+        self.base_name = name
 
-        # 2. split the worker types from string into list
+        # Split the worker types from string into list. This will have already been
+        # stripped of the potential name and multiplier. Check for duplicates in the
+        # split worker type list. No advantage in having duplicated worker types on
+        # the same worker. Two would consolidate into one. (e.g. "pusher + pusher"
+        # would resolve to a single "pusher" which may not be what was intended.)
         self.types_list = split_and_strip_string(worker_type_str, "+")
-        # Check for duplicates in the split worker type list. No advantage in having
-        # duplicated worker types on the same worker. Two would consolidate into one.
-        # (e.g. "pusher + pusher" would resolve to a single "pusher" which may not be
-        # what was intended.)
         if len(self.types_list) != len(set(self.types_list)):
-            error("Duplicate worker type found in " + worker_type_str + "! Please fix.")
+            error(f"Duplicate worker type found in '{worker_type_str}'! Please fix.")
 
-        for new_worker in self.types_list:
-            worker_config = WORKERS_CONFIG.get(new_worker)
+        for role in self.types_list:
+            worker_config = WORKERS_CONFIG.get(role)
             if worker_config:
                 worker_config = worker_config.copy()
             else:
                 error(
-                    new_worker
-                    + " is an unknown worker type! Was found in "
-                    + worker_type_str
-                    + ". Please fix!"
+                    f"'{role}' is an unknown worker type! Was found in "
+                    f"'{worker_type_str}'. Please fix!"
                 )
 
-            # 3. get the app(all should now be synapse.app.generic_worker).
+            # Get the app(all should now be synapse.app.generic_worker).
             # TODO: factor this out
             self.app = str(worker_config.get("app"))
 
-            # 4. get the listener_resources
+            # Get the listener_resources
             listener_resources = worker_config.get("listener_resources")
             if listener_resources:
-                self.listener_resources = self._merge_list_or_create(
-                    self.listener_resources,
-                    listener_resources,
-                )
+                self.listener_resources.update(listener_resources)
 
-            # 5. get the endpoint_patterns and assign to a dict key of listener_resource
+            # Get the endpoint_patterns, add them to a set and assign to a dict key
+            # of listener_resource. Since any given worker role has exactly one
+            # external connection resource, figure out which one it is and use that
+            # as a key to identify the endpoint pattern to be assigned to it. This
+            # allows different resources to be split onto different ports and then
+            # merged with similar resources when worker roles are merged together.
             lr: str = ""
-            for x in listener_resources:
-                if x in ["client", "federation", "media"]:
-                    lr = x
-            endpoint_patterns: List[str] | None = worker_config.get("endpoint_patterns")
+            for this_resource in listener_resources:
+                # Only look for these three, as endpoints shouldn't be assigned to
+                # something like a 'health' or 'replication' listener.
+                if this_resource in ["client", "federation", "media"]:
+                    lr = this_resource
+            endpoint_patterns = worker_config.get("endpoint_patterns")
             if endpoint_patterns:
-                self.endpoint_patterns.setdefault(lr, []).extend(
-                    self._merge_list_or_create(
-                        self.endpoint_patterns[lr],
-                        endpoint_patterns,
-                    )
-                )
+                for endpoint in endpoint_patterns:
+                    self.endpoint_patterns[lr].add(endpoint)
 
-            # 6. get shared_extra_conf, if any
-            shared_extra_config: Dict[str, Any] | None = worker_config.get(
-                "shared_extra_conf"
-            )
+            # Get shared_extra_conf, if any
+            shared_extra_config = worker_config.get("shared_extra_conf")
             if shared_extra_config:
-                self.shared_extra_config = self._merge_dict_or_create(
-                    self.shared_extra_config,
-                    shared_extra_config,
-                )
+                self.shared_extra_config.update(shared_extra_config)
 
-            # 7. get worker_extra_conf, if any(there is only one at this time,
+            # Get worker_extra_conf, if any(there is only one at this time,
             # and that is the media_repository. This goes in the worker yaml, so it's
             # pretty safe, can't use 2 media_repo workers on the same worker.
             worker_extra_conf = worker_config.get("worker_extra_conf")
             if worker_extra_conf:
+                # Copy it, in case it takes it as a reference.
                 self.worker_extra_conf = worker_extra_conf
-
-    @staticmethod
-    def _merge_dict_or_create(
-        existing_dict: Dict[str, Any], to_be_merged_dict: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """When given a blank or existing dict of worker template configuration, merge
-            new dict and return the new dict.
-
-        Args:
-            existing_dict: Either an existing worker template or a new empty dict.
-            to_be_merged_dict: The new data to be merged into
-                existing_dict.
-        Returns: The newly merged together dict values.
-        """
-        new_dict: Dict[str, Any]
-        if not existing_dict:
-            # the existing_dict is empty, a simple copy will suffice
-            new_dict = to_be_merged_dict.copy()
-        else:
-            # merge dictionary's, the worker name will be replaced later after counting
-            new_dict = {**existing_dict, **to_be_merged_dict}
-        return new_dict
-
-    @staticmethod
-    def _merge_list_or_create(
-        existing_list: List[str], to_be_merged_list: List[str]
-    ) -> List[str]:
-        """
-        When given a blank or existing list of worker template configuration, merge
-            new list and return the new list.
-
-        Args:
-            existing_list: Can be empty
-            to_be_merged_list: The new data to add
-        Returns: a new list comprising both lists passed in
-        """
-        new_list: List[str]
-        if not existing_list:
-            new_list = to_be_merged_list.copy()
-
-        else:
-            # merge the two lists, remove duplicates
-            new_list = list(set(existing_list + to_be_merged_list))
-
-        return new_list
-
-    def add_resource_port_mapping(self, resource_name: str, port_num: int) -> None:
-        self.listener_port_map.setdefault(resource_name, port_num)
 
 
 class NginxConfig:
@@ -512,93 +451,74 @@ class NginxConfig:
 
     Attributes:
         locations: A dict of locations and the name of thw upstream_host responsible for
-            it. e.g. '/_matrix/federation/.*/send':'federation_inbound.federation'
-        upstreams_to_ports: A dict of upstream host with a list of ports.
-        upstreams_roles: List of worker_type roles.
+            it. e.g.
+            '/_matrix/federation/.*/send':'bob-federation_inbound.federation'
+        locations_to_upstream_list: A dict of locations and all the collected upstreams
+            that could point to it. Used to process locations. e.g.
+            '/_matrix/federation/.*/send':{'federation_inbound.federation','bob.federation'}
+        upstreams_to_ports: A dict of upstream host with a Set of ports.
+        upstreams_roles: Set of worker_type roles. Used to calculate load-balancing.
 
     """
 
-    locations: Dict[str, list[str]]
+    locations: Dict[str, str]
+    locations_to_upstream_list: Dict[str, List[str]]
     upstreams_to_ports: Dict[str, Set[int]]
     upstreams_roles: Dict[str, Set[str]]
 
     def __init__(self) -> None:
         self.locations = {}
+        self.locations_to_upstream_list = {}
         self.upstreams_to_ports = {}
         self.upstreams_roles = {}
 
-    def add_or_replace_location(
+    def add_location(
         self,
         location: str,
-        upstream_name: str | list[str],
-        replace: bool = False,
+        upstream_name: str | List[str],
     ) -> None:
-        if replace:
-            self.locations.setdefault(location, []).clear()
         if isinstance(upstream_name, str):
-            self.locations.setdefault(location, []).append(upstream_name)
+            self.locations_to_upstream_list.setdefault(location, []).append(
+                upstream_name
+            )
         else:
-            self.locations.setdefault(location, []).extend(upstream_name)
-        self.locations[location] = list(set(self.locations[location]))
+            self.locations_to_upstream_list.setdefault(location, []).extend(
+                upstream_name
+            )
+        # Deduplicate this list. We don't just use a set because accessing a set is a
+        # PITA without an iterator.
+        self.locations_to_upstream_list[location] = list(
+            set(self.locations_to_upstream_list[location])
+        )
+        debug(
+            f"add_location: full list of host: "
+            f"'{str(self.locations_to_upstream_list[location])}' "
+            f"Added upstream_name: '{str(upstream_name)}' location: '{location}'"
+        )
 
-    def add_or_replace_upstreams(
+    def add_upstreams(
         self,
         host: str,
         worker_roles: List[str],
         port: List[int],
-        replace: bool = False,
     ) -> None:
         """
-        Add a new upstream_host to NginxConfig.upstreams given the Worker object and a
-            list of ports to assign to it.
+        Add a new upstream host to NginxConfig.upstreams_to_ports and upstreams_roles
+            when given the worker roes as a list and a list of ports to assign to it.
 
         Args:
             host: The name to use for the load-balancing upstream nginx block.
             worker_roles: A list of roles this upstream block can be responsible for.
-            port: A single port or list of ports to assign.
-            replace: Boolean to delete this data before re-adding it. No merging here.
+            port: A list containing a single port or multiple ports to assign.
         Returns: None
         """
-        log("add_or_replace_upstream: host: " + host)
-        log("add_or_replace_upstream: port: " + str(port))
-
-        if replace:
-            self.upstreams_to_ports.setdefault(host, set()).clear()
-            self.upstreams_roles.setdefault(host, set()).clear()
         # Initialize this (possible new) host entries
-        self.upstreams_to_ports.setdefault(host, set())
-        self.upstreams_roles.setdefault(host, set())
-        # Use set() to combine everything and deduplicate.
-        self.upstreams_to_ports[host].update(port)
-        self.upstreams_roles[host].update(worker_roles)
-        log(
-            "add_or_replace_upstream: after update ports: "
-            + str(self.upstreams_to_ports[host])
-        )
-        log(
-            "add_or_replace_upstream: after update roles: "
-            + str(self.upstreams_roles[host])
-        )
+        self.upstreams_to_ports.setdefault(host, set()).update(port)
+        self.upstreams_roles.setdefault(host, set()).update(worker_roles)
 
-    def remove_unused_upstreams(self) -> None:
-        """
-        Iterate through upstreams_to_port and locations to check that the former is
-            up-to-date.
-        """
-        # hosts_to_remove: List[str]
-        upstreams_to_edit = list(self.upstreams_to_ports.keys())
-        upstreams_from_locations: List[str] = sum(self.locations.values(), [])
-        hosts_to_remove = [
-            host for host in upstreams_to_edit if host not in upstreams_from_locations
-        ]
-        for host in hosts_to_remove:
-            self.upstreams_to_ports.pop(host)
-
-    def get_upstream_name_from_port(self, port: int) -> str:
-        for host, ports in self.upstreams_to_ports.items():
-            if port in ports:
-                return host
-        return ""
+        debug(f"add_upstreams: host: '{host}', port: '{str(port)}'")
+        debug(f"add_upstreams: upstreams_to_ports: '{self.upstreams_to_ports[host]}")
+        debug(f"add_upstreams: upstreams_roles: '{str(self.upstreams_roles[host])}")
 
 
 class Workers:
@@ -638,9 +558,9 @@ class Workers:
         self.map_of_worker_to_upstream = {}
         self.total_count = 0
         self.worker = {}
-        self.worker_type_counter = {}
+        self.worker_type_counter = defaultdict(int)
         self.worker_type_to_name_map = {}
-        self.worker_type_fine_grain_counter = {}
+        self.worker_type_fine_grain_counter = defaultdict(int)
         self.current_port_counter = port_starting_num
 
     def add_worker(self, name: str, requested_worker_type: str) -> str:
@@ -656,17 +576,8 @@ class Workers:
         """
         # Check worker base name isn't in use by something else already. Will error and
         # stop if it is.
-        log("Given name: " + name)
-        log("Given worker_type string: " + requested_worker_type)
-        if not self._check_worker_name(name, requested_worker_type):
-            error(
-                "Can not use "
-                + name
-                + " with requested worker_type: "
-                + requested_worker_type
-            )
-
-        else:
+        name_to_check = self.worker_type_to_name_map.get(name)
+        if (name_to_check is None) or (name_to_check == requested_worker_type):
             new_worker = Worker(name, requested_worker_type)
 
             # Check if there is to many of a worker there can only be one of.
@@ -676,73 +587,37 @@ class Workers:
                     # It's in the counter, even once. Check for sharding.
                     if role in self.SHARDING_NOT_ALLOWED_LIST:
                         error(
-                            "There can be only a single worker with "
-                            + role
-                            + " type. Please recount and remove."
+                            f"There can be only a single worker with '{role}' type. "
+                            "Please check and remove."
                         )
                 # Either it's not in counter or it is but is not a shard hazard,
                 # therefore it's safe to add. Don't need the return value here.
-                self._increment_counter(self.worker_type_fine_grain_counter, role)
+                self.worker_type_fine_grain_counter[role] += 1
 
-            # Add to the name:type counter, if it already exists this will no-op and
-            # that's ok.
+            # Add to the name:type map, if it already exists this will no-op and that's
+            # what we want.
             self.worker_type_to_name_map.setdefault(name, requested_worker_type)
 
-            # Now add it ot the global counter
-            count = self._increment_counter(
-                self.worker_type_counter, requested_worker_type
-            )
+            # Now add or increment it on the global counter
+            self.worker_type_counter[requested_worker_type] += 1
 
-            # Save the base name for grouping in reverse proxy
-            new_worker.base_name = name
             # Save the count as an index
-            new_worker.index = count
+            new_worker.index = int(self.worker_type_counter[requested_worker_type])
             # Name workers by their type or requested name concatenated with an
             # incrementing number. e.g. event_creator+event_persister1,
             # federation_reader1 or bob1
-            new_worker.name = new_worker.base_name + str(count)
+            new_worker.name = new_worker.base_name + str(new_worker.index)
             # Save it to the kettle for later cooking
             self.worker.setdefault(new_worker.name, new_worker)
             # Give back the new worker name that's been settled on as a copy of the
             # string, more work to do.
             return str(new_worker.name)
-
-    def _check_worker_name(self, worker_base_name: str, worker_type_str: str) -> bool:
-        """Given a dict of worker_base_name:worker_type, check if this worker_base_name
-            has been seen before.
-
-        Args:
-            worker_base_name: str of the base worker name, no appended number.
-            worker_type_str: str of the worker_type, including combo workers.
-        Returns: True if allowed, False if not
-        """
-        name_to_check = self.worker_type_to_name_map.get(worker_base_name)
-        if name_to_check is not None:
-            if name_to_check == worker_type_str:
-                # Key exists, and they match, it should be ok.
-                return True
-            else:
-                log(
-                    "_check_worker_name: %s in use by a different worker type."
-                    % worker_type_str
-                )
-                return False
         else:
-            # Key doesn't exist, it's ok to use.
-            return True
-
-    @staticmethod
-    def _increment_counter(counter: Dict[str, int], worker_type: str) -> int:
-        """Given a dict of worker_type:int, increment int
-
-        Args:
-            counter: dict to increment
-            worker_type: str of worker_type
-        Returns: int of new value of counter
-        """
-        new_count: int = counter.setdefault(worker_type, 0) + 1
-        counter[worker_type] = new_count
-        return new_count
+            error(
+                f"Can not use '{name}' with requested worker_type: "
+                f"'{requested_worker_type}', it is in use by: "
+                f"'{self.worker_type_to_name_map[name]}'"
+            )
 
     def update_local_shared_config(self, worker_name: str) -> None:
         """Insert a given worker name into the worker's configuration dict.
@@ -764,9 +639,18 @@ class Workers:
     def set_listener_port_by_resource(
         self, worker_name: str, resource_name: str
     ) -> None:
-        self.worker[worker_name].add_resource_port_mapping(
-            resource_name, self.current_port_counter
-        )
+        """
+        Simple helper to add to the listener_port_map and increment the counter of port
+        numbers.
+
+        Args:
+            worker_name: Name of worker
+            resource_name: The listener resource this is for. e.g. 'client' or 'media'
+
+        """
+        self.worker[worker_name].listener_port_map[
+            resource_name
+        ] = self.current_port_counter
         # Increment the counter
         self.current_port_counter += 1
 
@@ -779,6 +663,11 @@ def log(txt: str) -> None:
 def error(txt: str) -> NoReturn:
     print(txt, file=sys.stderr, flush=True)
     sys.exit(2)
+
+
+def debug(txt: str) -> None:
+    if DEBUG:
+        print(txt, flush=True)
 
 
 def flush_buffers() -> None:
@@ -1189,14 +1078,14 @@ def generate_worker_files(
 
         # If metrics is enabled, add a listener_resource for that
         if enable_metrics:
-            worker.listener_resources.append("metrics")
+            worker.listener_resources.add("metrics")
 
         # Same for manholes
         if enable_manhole_workers:
-            worker.listener_resources.append("manhole")
+            worker.listener_resources.add("manhole")
 
         # All workers get a health listener
-        worker.listener_resources.append("health")
+        worker.listener_resources.add("health")
 
         # Add in ports for each listener entry(e.g. 'client', 'federation', 'media',
         # 'replication')
@@ -1243,7 +1132,7 @@ def generate_worker_files(
                 this_listener = {
                     "type": "http",
                     "port": worker.listener_port_map[listener],
-                    "resources": [{"names": [listener]}],
+                    "resources": [{"names": [listener]}, {"compress": True}],
                 }
             # The 'metrics' and 'manhole' listeners don't use 'http' as their type.
             elif listener in ["metrics", "manhole"]:
@@ -1284,17 +1173,17 @@ def generate_worker_files(
                     not in nginx.upstreams_to_ports[upstream_name]
                 ):
                     # it doesn't exist, add it
-                    nginx.add_or_replace_upstreams(
+                    nginx.add_upstreams(
                         upstream_name,
                         worker.types_list,
                         [worker.listener_port_map[listener_type]],
                     )
 
                 # Add this upstream to this endpoint pattern in the nginx object
-                nginx.add_or_replace_location(pattern, upstream_name)
+                nginx.add_location(pattern, upstream_name)
 
     # At this point, we have some nginx structures:
-    # nginx.locations:
+    # nginx.locations_to_upstream_list:
     #   { "endpoint": ["upstream_name"] }
     #
     # upstreams_to_port:
@@ -1307,57 +1196,77 @@ def generate_worker_files(
     # Need to combine multiple upstream_name's into one, then update upstreams and
     # nginx.locations with new values. Join the new upstream names with a '-' to
     # distinguish from combined worker_types. Note that this only happens if multiple
-    # upstreams exist for an endpoint, which is why we use the nginx.locations,
-    # and not the nginx.upstreams directly.
-    # If there is only one upstream for this endpoint, then it's unnecessary for it
-    # to be an upstream. Mutate it into a direct 'localhost:port'. 'http://' will be
+    # upstreams exist for an endpoint, which is why we use the
+    # nginx.locations_to_upstream_list, and not the nginx.upstreams directly. If
+    # there is only one upstream for this endpoint, then it's unnecessary for it to
+    # be an upstream. Mutate it into a direct 'localhost:port'. 'http://' will be
     # added before writing.
 
-    for endpoint in nginx.locations:
+    for (
+        endpoint_url,
+        upstreams_from_locations,
+    ) in nginx.locations_to_upstream_list.items():
         new_nginx_upstream: str = ""
-        # Deal with a single port/upstream
-        if (
-            len(nginx.locations[endpoint]) < 2
-            and len(nginx.upstreams_to_ports[nginx.locations[endpoint][0]]) < 2
-        ):
-            for upstream in nginx.locations[endpoint]:
-                # This is called 'tuple unpacking' and it's dumb that python doesn't
-                # have a proper iter for a set. Alternatively, 'next(iter(of_set))'
-                # would do, but according to the forums, it's 3 times as slow when only
-                # using it on a single item set, with multiple items it's faster.
-                (upstream_to_string,) = nginx.upstreams_to_ports[upstream]
-                new_nginx_upstream += "localhost:%s" % upstream_to_string
+        # debug("endpoint_url: " + endpoint_url)
+        # debug("upstreams_from_locations: " + str(upstreams_from_locations))
+        # Deal with a single upstream
+        if len(upstreams_from_locations) < 2:
+            # It's a single element in a list. Grab it so we can extract the port data.
+            for upstream in upstreams_from_locations:
+                # Deal with single port
+                if len(nginx.upstreams_to_ports[upstream]) < 2:
+                    # Need to check with upstreams_to_ports to get the port number.
+                    # This is called 'tuple unpacking' and it's dumb looking.
+                    # Alternatively, 'next(iter(of_set))' would do, but according to
+                    # the forums, it's 3 times as slow when only using it on a single
+                    # item set like this, with multiple items it's faster.
+                    (port,) = nginx.upstreams_to_ports[upstream]
+                    new_nginx_upstream += "localhost:%s" % port
+                    debug(
+                        f"- Setting new upstream from single upstream: '{upstream}' "
+                        f"to port: '{new_nginx_upstream}'"
+                    )
+                else:
+                    # This upstream has more than 1 port, which means we just use the
+                    # name directly as it was made earlier.
+                    debug(f"- Using existing upstream: '{upstream}'")
+                    new_nginx_upstream = upstream
         else:
             # Combine the names of the upstreams, if there is more than one.
-            name_pieces: list[str] = []
-            resource = ""
-            for name in nginx.locations[endpoint]:
+            name_pieces: List[str] = []
+            resource: List[str] = []
+            debug(
+                "- Found multiple upstreams in "
+                f"upstreams_from_location: '{upstreams_from_locations}'"
+            )
+            for name in upstreams_from_locations:
                 name_split = name.split(".")
                 name_pieces.append(name_split[0])
-                resource = name_split[1]
+                resource.append(name_split[1])
             # Sort the names, it's prettier.
             new_nginx_upstream = "-".join(sorted(name_pieces))
-            # Re-append the resource name
-            new_nginx_upstream += "." + resource
+            # Re-append the resource name. There will always be at least one, so just
+            # use it. This might create oddities with media_repository which are purely
+            # cosmetic.
+            new_nginx_upstream += "." + resource[0]
 
             # Check for existing, if so we don't have to do more here
             if new_nginx_upstream not in nginx.upstreams_to_ports:
+                debug(f"- Adding new upstream: '{new_nginx_upstream}'")
                 new_nginx_upstream_port_list: list[int] = []
                 new_nginx_upstream_role_list: list[str] = []
 
                 # Compile the newly merged upstream data
-                for this_worker in nginx.locations[endpoint]:
+                for upstream in upstreams_from_locations:
                     # If this is a combined upstream, there may not be port data for
                     # it in the nginx.upstream dict. Check and update if missing.
                     new_nginx_upstream_port_list.extend(
-                        nginx.upstreams_to_ports[this_worker]
+                        nginx.upstreams_to_ports[upstream]
                     )
 
                     # If this is a combined upstream, there won't be role data for it
                     # either
-                    new_nginx_upstream_role_list.extend(
-                        nginx.upstreams_roles[this_worker]
-                    )
+                    new_nginx_upstream_role_list.extend(nginx.upstreams_roles[upstream])
 
                     # Deduplicate to cut down on extra processing(plus it looks nicer)
                     new_nginx_upstream_role_list = list(
@@ -1366,44 +1275,53 @@ def generate_worker_files(
 
                 # The combined name wasn't found in nginx.upstreams_to_port, so add
                 # it now that the ports and roles are compiled.
-                nginx.add_or_replace_upstreams(
+                nginx.add_upstreams(
                     new_nginx_upstream,
                     new_nginx_upstream_role_list,
                     new_nginx_upstream_port_list,
                 )
 
         # Update nginx.locations with new upstream
-        nginx.add_or_replace_location(endpoint, new_nginx_upstream, replace=True)
+        nginx.locations[endpoint_url] = new_nginx_upstream
 
-    # Remove extra upstreams that are no longer needed.
-    nginx.remove_unused_upstreams()
+    # Compile list of actual upstreams needed. Add them all, then deduplicate.
+    upstreams_to_use: List[str] = []
+    debug("Compiling final list of upstreams.")
+    for upstream in nginx.locations.values():
+        debug(f"- Adding '{upstream}'")
+        upstreams_to_use.append(upstream)
+    # Deduplicate
+    upstreams_to_use = list(set(upstreams_to_use))
 
     # Build the nginx location config blocks now that the upstreams are settled. Now is
     # when we pre-pend the 'http://'
     nginx_location_config = ""
-    for endpoint in nginx.locations:
-        # At this point, nginx.locations[endpoint] is a single item in a list, grab the
-        # only element there, 0
+    for endpoint_url, upstream_to_use in nginx.locations.items():
+        # At this point, nginx.locations[endpoint] is a simple string.
         nginx_location_config += NGINX_LOCATION_CONFIG_BLOCK.format(
-            endpoint=endpoint,
-            upstream="http://" + nginx.locations[endpoint][0],
+            endpoint=endpoint_url,
+            upstream="http://" + upstream_to_use,
         )
 
     # Determine the load-balancing upstreams to configure
     nginx_upstream_config = ""
 
-    worker_type_load_balance_header_list = ["synchrotron"]
-    worker_type_load_balance_ip_list = ["federation_inbound"]
+    # lb stands for load-balancing. These can be added to if other worker roles are
+    # appropriate. Based on the Docs, this is it.
+    roles_lb_header_list = ["synchrotron"]
+    roles_lb_ip_list = ["federation_inbound"]
 
-    for (
-        upstream_worker_base_name,
-        upstream_worker_ports,
-    ) in nginx.upstreams_to_ports.items():
-        if len(upstream_worker_ports) > 1:
-            body = ""
-            worker_type_split_string = list(
-                nginx.upstreams_roles[upstream_worker_base_name]
-            )
+    for upstream_name in upstreams_to_use:
+        body = ""
+        upstream_worker_ports = nginx.upstreams_to_ports.get(upstream_name)
+        debug(
+            f"upstream_name: '{upstream_name}' "
+            f"upstream_worker_ports: '{upstream_worker_ports}'"
+        )
+        # This only fires if there is need to create an actual upstream block.
+        if upstream_worker_ports and len(upstream_worker_ports) > 1:
+            # There is more than one port, do specialized load-balancing.
+            roles_list = list(nginx.upstreams_roles[upstream_name])
             # This presents a dilemma. Some endpoints are better load-balanced by
             # Authorization header, and some by remote IP. What do you do if a combo
             # worker was requested that has endpoints for both? As it is likely but
@@ -1430,19 +1348,14 @@ def generate_worker_files(
             # Some endpoints should be load-balanced by client IP. This way,
             # if it comes from the same IP, it goes to the same worker and should be
             # a smarter way to cache data. This works well for federation.
-            if any(
-                x in worker_type_load_balance_ip_list for x in worker_type_split_string
-            ):
+            if any(x in roles_lb_ip_list for x in roles_list):
                 body += "    hash $proxy_add_x_forwarded_for;\n"
 
             # Some endpoints should be load-balanced by Authorization header. This
             # means that even with a different IP, a user should get the same data
             # from the same upstream source, like a synchrotron worker, with smarter
             # caching of data.
-            elif any(
-                x in worker_type_load_balance_header_list
-                for x in worker_type_split_string
-            ):
+            elif any(x in roles_lb_header_list for x in roles_list):
                 body += "    hash $http_authorization consistent;\n"
 
             # Add specific "hosts" by port number to the upstream block.
@@ -1451,7 +1364,7 @@ def generate_worker_files(
 
             # Everything else, just use the default basic round-robin scheme.
             nginx_upstream_config += NGINX_UPSTREAM_CONFIG_BLOCK.format(
-                upstream_worker_base_name=upstream_worker_base_name,
+                upstream_name=upstream_name,
                 body=body,
             )
 
@@ -1472,6 +1385,13 @@ def generate_worker_files(
             if reg_path.suffix.lower() in (".yaml", ".yml")
         ]
 
+    import json
+
+    debug("nginx.locations: " + json.dumps(nginx.locations, indent=4))
+    debug("nginx.upstreams_to_ports: " + str(nginx.upstreams_to_ports))
+    debug("upstreams_to_use: " + str(upstreams_to_use))
+    debug("nginx_upstream_config: " + str(nginx_upstream_config))
+    debug("global shared_config: " + json.dumps(shared_config, indent=4))
     workers_in_use = len(worker_types) > 0
 
     # Shared homeserver config
